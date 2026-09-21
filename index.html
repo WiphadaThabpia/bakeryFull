@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Bakery 3D</title>
+
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+
+<body>
+
+<script>
+
+  // =========================
+  // SCENE
+  // =========================
+
+  const scene = new THREE.Scene();
+
+  // พื้นหลังสีครีมอ่อน
+  scene.background = new THREE.Color(0xFFF4E3);
+
+
+  // =========================
+  // CAMERA
+  // =========================
+
+  const camera = new THREE.PerspectiveCamera(
+    50,
+    innerWidth / innerHeight,
+    0.1,
+    100
+  );
+
+
+  // =========================
+  // RENDERER
+  // =========================
+
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true
+  });
+
+  renderer.setSize(
+    innerWidth,
+    innerHeight
+  );
+
+  renderer.setPixelRatio(
+    Math.min(devicePixelRatio, 2)
+  );
+
+  renderer.outputEncoding = THREE.sRGBEncoding;
+
+  document.body.appendChild(
+    renderer.domElement
+  );
+
+
+  // =========================
+  // CONTROLS
+  // =========================
+
+  const controls = new THREE.OrbitControls(
+    camera,
+    renderer.domElement
+  );
+
+  controls.enableDamping = true;
+
+  controls.dampingFactor = 0.05;
+
+  controls.minDistance = 5;
+
+  controls.maxDistance = 30;
+
+
+  // =========================
+  // LIGHT
+  // =========================
+
+  const ambientLight =
+    new THREE.AmbientLight(
+      0xffffff,
+      0.55
+    );
+
+  scene.add(ambientLight);
+
+
+  const light =
+    new THREE.DirectionalLight(
+      0xffffff,
+      0.35
+    );
+
+  light.position.set(
+    5,
+    3,
+    10
+  );
+
+  scene.add(light);
+
+
+  // =========================
+  // LOAD BAKERY
+  // =========================
+
+  const loader =
+    new THREE.GLTFLoader();
+
+  loader.load(
+    'Bekery.glb',
+
+    function(gltf) {
+
+      const bakery =
+        gltf.scene;
+
+      scene.add(bakery);
+
+
+      // หาขนาดโมเดล
+      const box =
+        new THREE.Box3()
+          .setFromObject(bakery);
+
+      const center =
+        new THREE.Vector3();
+
+      box.getCenter(center);
+
+      const size =
+        new THREE.Vector3();
+
+      box.getSize(size);
+
+
+      // =========================
+      // CAMERA POSITION
+      // =========================
+
+      // มุมตามภาพ Blender
+      // มองเข้าหาหน้าร้านตามแกน X
+
+      camera.position.set(
+        box.max.x + size.x * 1.6,
+        center.y,
+        center.z + size.z * 0.15
+      );
+
+
+      // จุดที่กล้องมอง
+      controls.target.set(
+        center.x,
+        center.y,
+        center.z
+      );
+
+      camera.lookAt(
+        controls.target
+      );
+
+      controls.update();
+
+
+      console.log('Bakery loaded');
+      console.log('Size:', size);
+      console.log('Center:', center);
+
+    },
+
+
+    function(xhr) {
+
+      if (xhr.total > 0) {
+
+        console.log(
+          'Loading:',
+          (xhr.loaded / xhr.total * 100).toFixed(0) + '%'
+        );
+
+      }
+
+    },
+
+
+    function(error) {
+
+      console.error(
+        'โหลด Bekery.glb ไม่สำเร็จ',
+        error
+      );
+
+    }
+  );
+
+
+  // =========================
+  // RESIZE
+  // =========================
+
+  addEventListener(
+    'resize',
+    () => {
+
+      camera.aspect =
+        innerWidth / innerHeight;
+
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(
+        innerWidth,
+        innerHeight
+      );
+
+      renderer.setPixelRatio(
+        Math.min(devicePixelRatio, 2)
+      );
+
+    }
+  );
+
+
+  // =========================
+  // ANIMATION
+  // =========================
+
+  function animate() {
+
+    requestAnimationFrame(
+      animate
+    );
+
+    controls.update();
+
+    renderer.render(
+      scene,
+      camera
+    );
+
+  }
+
+  animate();
+
+</script>
+
+</body>
+</html>

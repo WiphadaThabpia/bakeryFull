@@ -97,6 +97,10 @@ renderer.setPixelRatio(
 
 renderer.outputEncoding = THREE.sRGBEncoding;
 
+// Shadow Map
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
 document.body.appendChild(renderer.domElement);
 
 // Orbit Controls
@@ -111,13 +115,8 @@ controls.enableRotate = true;
 controls.enableZoom = true;
 controls.enablePan = true;
 
-// คลิกซ้าย = หมุน
 controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
-
-// คลิกขวา = เลื่อน
 controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
-
-// คลิกกลาง = ปิด
 controls.mouseButtons.MIDDLE = null;
 
 // Light
@@ -139,7 +138,35 @@ directionalLight.position.set(
     10
 );
 
+directionalLight.castShadow = true;
+
+directionalLight.shadow.mapSize.width = 1024;
+directionalLight.shadow.mapSize.height = 1024;
+
+directionalLight.shadow.camera.near = 0.1;
+directionalLight.shadow.camera.far = 50;
+
 scene.add(directionalLight);
+
+// Bakery Orange Point Light
+const bakeryLight = new THREE.PointLight(
+    0xffa15c,
+    2.0,
+    18,
+    2
+);
+
+bakeryLight.castShadow = true;
+
+bakeryLight.shadow.mapSize.width = 1024;
+bakeryLight.shadow.mapSize.height = 1024;
+
+bakeryLight.shadow.camera.near = 0.1;
+bakeryLight.shadow.camera.far = 30;
+
+bakeryLight.shadow.bias = -0.0005;
+
+scene.add(bakeryLight);
 
 // Objects
 let modelRoot = null;
@@ -152,22 +179,293 @@ let aboutMeTarget = null;
 let menuCakeTarget = null;
 let menuDonutTarget = null;
 
+// Feature Objects
+let goldenTray = null;
+let cakeMascot = null;
+let bakeryFlag = null;
+
+// Camera
 let defaultCamPos = new THREE.Vector3();
 let defaultCamTarget = new THREE.Vector3();
 
 let currentPage = null;
 let flyAnimation = null;
 
+// Shader
+const flagShaders = [];
+
+// Clock
+const clock = new THREE.Clock();
+
 // GLTF Loader
 const loader = new THREE.GLTFLoader();
 
-// Load Model
+/* =========================
+   OBJECT NAME SEARCH
+========================= */
+
+function findObjectByNames(root, names) {
+
+    let exactObject = null;
+    let fuzzyObject = null;
+
+    root.traverse(function(node) {
+
+        if (!node.name) {
+            return;
+        }
+
+        const nodeName =
+            node.name.toLowerCase();
+
+        for (let i = 0; i < names.length; i++) {
+
+            const searchName =
+                names[i].toLowerCase();
+
+            if (nodeName === searchName) {
+                exactObject = node;
+                return;
+            }
+
+            if (
+                !fuzzyObject &&
+                nodeName.includes(searchName)
+            ) {
+                fuzzyObject = node;
+            }
+        }
+    });
+
+    return exactObject || fuzzyObject || null;
+}
+
+/* =========================
+   GOLDEN PBR TRAY
+========================= */
+
+function applyGoldenTray(object) {
+
+    if (!object) {
+        console.warn("ไม่พบถาดโชว์สำหรับ PBR");
+        return;
+    }
+
+    object.traverse(function(node) {
+
+        if (!node.isMesh) {
+            return;
+        }
+
+        const oldMaterial = node.material;
+
+        const normalMap =
+            oldMaterial &&
+            oldMaterial.normalMap
+                ? oldMaterial.normalMap
+                : null;
+
+        node.material =
+            new THREE.MeshPhysicalMaterial({
+                color: 0xd99b25,
+                metalness: 0.88,
+                roughness: 0.22,
+                clearcoat: 0.65,
+                clearcoatRoughness: 0.12,
+                normalMap: normalMap,
+                emissive: 0x3a1800,
+                emissiveIntensity: 0.12
+            });
+
+        node.castShadow = true;
+        node.receiveShadow = true;
+    });
+
+    console.log(
+        "Golden PBR Tray:",
+        object
+    );
+}
+
+/* =========================
+   TOON GRADIENT RAMP
+========================= */
+
+function createGradientRamp() {
+
+    const data = new Uint8Array([
+        70, 70, 70, 255,
+        130, 130, 130, 255,
+        200, 200, 200, 255,
+        255, 255, 255, 255
+    ]);
+
+    const texture =
+        new THREE.DataTexture(
+            data,
+            4,
+            1,
+            THREE.RGBAFormat
+        );
+
+    texture.minFilter = THREE.NearestFilter;
+    texture.magFilter = THREE.NearestFilter;
+    texture.generateMipmaps = false;
+    texture.needsUpdate = true;
+
+    return texture;
+}
+
+const toonGradient =
+    createGradientRamp();
+
+/* =========================
+   CAKE TOON MATERIAL
+========================= */
+
+function applyCakeToon(object) {
+
+    if (!object) {
+        console.warn("ไม่พบ Mascot Cake สำหรับ Toon");
+        return;
+    }
+
+    object.traverse(function(node) {
+
+        if (!node.isMesh) {
+            return;
+        }
+
+        node.material =
+            new THREE.MeshToonMaterial({
+                color: 0xffc7a8,
+                gradientMap: toonGradient,
+                flatShading: true
+            });
+
+        node.material.needsUpdate = true;
+
+        node.castShadow = true;
+        node.receiveShadow = true;
+    });
+
+    console.log(
+        "Cake Toon Mascot:",
+        object
+    );
+}
+
+/* =========================
+   FLAG VERTEX SHADER
+========================= */
+
+function applyFlagShader(object) {
+
+    if (!object) {
+        console.warn("ไม่พบ Flag / Banner");
+        return;
+    }
+
+    object.traverse(function(node) {
+
+        if (!node.isMesh) {
+            return;
+        }
+
+        const materials =
+            Array.isArray(node.material)
+                ? node.material
+                : [node.material];
+
+        materials.forEach(function(material) {
+
+            if (!material) {
+                return;
+            }
+
+            const oldOnBeforeCompile =
+                material.onBeforeCompile;
+
+            material.onBeforeCompile =
+                function(shader, renderer) {
+
+                    if (oldOnBeforeCompile) {
+                        oldOnBeforeCompile(
+                            shader,
+                            renderer
+                        );
+                    }
+
+                    shader.uniforms.uTime = {
+                        value: 0
+                    };
+
+                    shader.vertexShader =
+                        shader.vertexShader.replace(
+                            "#include <begin_vertex>",
+
+                            `
+                            #include <begin_vertex>
+
+                            float wave1 =
+                                sin(
+                                    transformed.x * 5.0 +
+                                    uTime * 2.4
+                                ) * 0.08;
+
+                            float wave2 =
+                                sin(
+                                    transformed.x * 11.0 +
+                                    uTime * 4.0
+                                ) * 0.025;
+
+                            float waveAmount =
+                                abs(transformed.x) * 0.8 + 0.25;
+
+                            transformed.z +=
+                                (wave1 + wave2) *
+                                waveAmount;
+
+                            transformed.y +=
+                                sin(
+                                    transformed.x * 3.0 +
+                                    uTime * 2.0
+                                ) * 0.015;
+                            `
+                        );
+
+                    material.userData.flagShader =
+                        shader;
+
+                    flagShaders.push(
+                        material
+                    );
+                };
+
+            material.needsUpdate = true;
+        });
+
+        node.castShadow = true;
+        node.receiveShadow = true;
+    });
+
+    console.log(
+        "Realtime Flag Shader:",
+        object
+    );
+}
+
+/* =========================
+   LOAD MODEL
+========================= */
+
 loader.load(
     "./Bekery.glb",
 
     function(gltf) {
 
         const model = gltf.scene;
+
         modelRoot = model;
 
         model.traverse(function(node) {
@@ -190,33 +488,132 @@ loader.load(
                 menuDonutTarget = node;
             }
 
-            if (!node.isMesh) return;
+            // Shadow
+            if (node.isMesh) {
+                node.castShadow = true;
+                node.receiveShadow = true;
+            }
         });
 
         // ABOUT ME
-        // จับคู่ปุ่มกับ Target โดยตรง
-        btnAboutMe = model.getObjectByName("BtnAboutme.001");
-        aboutMeTarget = model.getObjectByName("AboutMe");
+        btnAboutMe =
+            model.getObjectByName(
+                "BtnAboutme.001"
+            );
 
-        console.log("BtnAboutme.001:", btnAboutMe);
-        console.log("BtnMenu:", btnMenu);
-        console.log("BtnPortfolio:", btnPortfolio);
+        aboutMeTarget =
+            model.getObjectByName(
+                "AboutMe"
+            );
 
-        console.log("AboutMe:", aboutMeTarget);
-        console.log("MenuCake:", menuCakeTarget);
-        console.log("MenuDonut:", menuDonutTarget);
+        // Feature Objects
+        goldenTray =
+            findObjectByNames(
+                model,
+                [
+                    "Tray",
+                    "ShowcaseTray",
+                    "GoldenTray",
+                    "ถาดโชว์",
+                    "ถาด"
+                ]
+            );
+
+        cakeMascot =
+            findObjectByNames(
+                model,
+                [
+                    "CakeMascot",
+                    "MascotCake",
+                    "Cake_Mascot",
+                    "Mascot",
+                    "Mascot.001",
+                    "เค้กมาสคอต",
+                    "มาสคอต"
+                ]
+            );
+
+        bakeryFlag =
+            findObjectByNames(
+                model,
+                [
+                    "Flag",
+                    "BakeryFlag",
+                    "Banner",
+                    "BakeryBanner",
+                    "SignFlag",
+                    "ธง",
+                    "ป้าย"
+                ]
+            );
+
+        console.log(
+            "BtnAboutme.001:",
+            btnAboutMe
+        );
+
+        console.log(
+            "BtnMenu:",
+            btnMenu
+        );
+
+        console.log(
+            "BtnPortfolio:",
+            btnPortfolio
+        );
+
+        console.log(
+            "AboutMe:",
+            aboutMeTarget
+        );
+
+        console.log(
+            "MenuCake:",
+            menuCakeTarget
+        );
+
+        console.log(
+            "MenuDonut:",
+            menuDonutTarget
+        );
+
+        console.log(
+            "Golden Tray:",
+            goldenTray
+        );
+
+        console.log(
+            "Cake Mascot:",
+            cakeMascot
+        );
+
+        console.log(
+            "Bakery Flag:",
+            bakeryFlag
+        );
 
         scene.add(model);
 
         // Center Model
-        const box = new THREE.Box3().setFromObject(model);
+        const box =
+            new THREE.Box3()
+                .setFromObject(model);
 
-        const center = box.getCenter(
-            new THREE.Vector3()
-        );
+        const center =
+            box.getCenter(
+                new THREE.Vector3()
+            );
 
-        const size = box.getSize(
-            new THREE.Vector3()
+        const size =
+            box.getSize(
+                new THREE.Vector3()
+            );
+
+        // Bakery Light Position
+        bakeryLight.position.set(
+            center.x,
+            center.y + size.y * 0.35,
+            center.z
         );
 
         // Initial Camera
@@ -246,12 +643,26 @@ loader.load(
             controls.target
         );
 
+        // Apply Features
+        applyGoldenTray(
+            goldenTray
+        );
+
+        applyCakeToon(
+            cakeMascot
+        );
+
+        applyFlagShader(
+            bakeryFlag
+        );
+
         console.log("Bekery loaded");
     },
 
     undefined,
 
     function(error) {
+
         console.error(
             "โหลดโมเดลไม่สำเร็จ",
             error
@@ -259,11 +670,20 @@ loader.load(
     }
 );
 
-// Raycaster
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
+/* =========================
+   RAYCASTER
+========================= */
 
-function isObjectOrChild(object, target) {
+const raycaster =
+    new THREE.Raycaster();
+
+const mouse =
+    new THREE.Vector2();
+
+function isObjectOrChild(
+    object,
+    target
+) {
 
     if (!target) {
         return false;
@@ -283,20 +703,30 @@ function isObjectOrChild(object, target) {
     return false;
 }
 
-// Click
+/* =========================
+   CLICK
+========================= */
+
 renderer.domElement.addEventListener(
     "click",
     function(event) {
 
-        if (!modelRoot || flyAnimation) {
+        if (
+            !modelRoot ||
+            flyAnimation
+        ) {
             return;
         }
 
         mouse.x =
-            (event.clientX / window.innerWidth) * 2 - 1;
+            (event.clientX /
+            window.innerWidth) *
+            2 - 1;
 
         mouse.y =
-            -(event.clientY / window.innerHeight) * 2 + 1;
+            -(event.clientY /
+            window.innerHeight) *
+            2 + 1;
 
         raycaster.setFromCamera(
             mouse,
@@ -309,7 +739,9 @@ renderer.domElement.addEventListener(
                 true
             );
 
-        if (intersects.length === 0) {
+        if (
+            intersects.length === 0
+        ) {
             return;
         }
 
@@ -332,6 +764,7 @@ renderer.domElement.addEventListener(
             ) {
 
                 showAboutMe();
+
                 return;
             }
 
@@ -344,6 +777,7 @@ renderer.domElement.addEventListener(
             ) {
 
                 showMenu();
+
                 return;
             }
 
@@ -366,7 +800,10 @@ renderer.domElement.addEventListener(
     }
 );
 
-// Focus Object
+/* =========================
+   FOCUS OBJECT
+========================= */
+
 function focusOnObject(
     object,
     distance = 2.0
@@ -439,7 +876,10 @@ function focusOnObject(
     );
 }
 
-// Camera Fly
+/* =========================
+   CAMERA FLY
+========================= */
+
 function flyCameraTo(
     targetPosition,
     targetLookAt,
@@ -532,7 +972,10 @@ function flyCameraTo(
         );
 }
 
-// MENU
+/* =========================
+   MENU
+========================= */
+
 function showMenu() {
 
     currentPage = "menu";
@@ -555,7 +998,10 @@ function showMenu() {
     ).style.display = "block";
 }
 
-// ABOUT ME
+/* =========================
+   ABOUT ME
+========================= */
+
 function showAboutMe() {
 
     currentPage = "about";
@@ -578,7 +1024,10 @@ function showAboutMe() {
     ).style.display = "none";
 }
 
-// MENU CAKE
+/* =========================
+   MENU CAKE
+========================= */
+
 function showCake() {
 
     currentPage = "menu";
@@ -597,7 +1046,10 @@ function showCake() {
     ).style.display = "block";
 }
 
-// MENU DONUT
+/* =========================
+   MENU DONUT
+========================= */
+
 function showDonut() {
 
     currentPage = "menu";
@@ -616,7 +1068,10 @@ function showDonut() {
     ).style.display = "none";
 }
 
-// GO BACK
+/* =========================
+   GO BACK
+========================= */
+
 function goBack() {
 
     currentPage = null;
@@ -640,7 +1095,10 @@ function goBack() {
     ).style.display = "none";
 }
 
-// HTML Back
+/* =========================
+   HTML BACK
+========================= */
+
 document.getElementById(
     "backButton"
 ).addEventListener(
@@ -650,7 +1108,10 @@ document.getElementById(
     }
 );
 
-// HTML Cake
+/* =========================
+   HTML CAKE
+========================= */
+
 document.getElementById(
     "cakeButton"
 ).addEventListener(
@@ -660,7 +1121,10 @@ document.getElementById(
     }
 );
 
-// HTML Donut
+/* =========================
+   HTML DONUT
+========================= */
+
 document.getElementById(
     "donutButton"
 ).addEventListener(
@@ -670,12 +1134,45 @@ document.getElementById(
     }
 );
 
-// Animation
+/* =========================
+   ANIMATION
+========================= */
+
+function updateFlagShader(time) {
+
+    for (
+        let i = 0;
+        i < flagShaders.length;
+        i++
+    ) {
+
+        const material =
+            flagShaders[i];
+
+        if (
+            material.userData &&
+            material.userData.flagShader
+        ) {
+
+            material.userData
+                .flagShader
+                .uniforms
+                .uTime
+                .value = time;
+        }
+    }
+}
+
 function animate() {
 
     requestAnimationFrame(
         animate
     );
+
+    const time =
+        clock.getElapsedTime();
+
+    updateFlagShader(time);
 
     if (controls.enabled) {
         controls.update();
@@ -689,7 +1186,10 @@ function animate() {
 
 animate();
 
-// Resize
+/* =========================
+   RESIZE
+========================= */
+
 window.addEventListener(
     "resize",
     function() {

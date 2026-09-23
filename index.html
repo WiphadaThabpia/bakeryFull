@@ -209,6 +209,10 @@ let aboutMeTarget = null;
 let menuCakeTarget = null;
 let menuDonutTarget = null;
 
+// Cube
+let cube041 = null;
+let cube034Target = null;
+
 // Feature Objects
 let goldenCup = null;
 
@@ -381,7 +385,6 @@ function applyClothShader(object) {
         }
 
         // แยก Material ของแต่ละ Plane
-        // เพื่อไม่ให้ Shader ชนกัน
         if (node.material) {
             node.material =
                 node.material.clone();
@@ -555,6 +558,17 @@ loader.load(
                 "AboutMe"
             );
 
+        // CUBE
+        cube041 =
+            model.getObjectByName(
+                "Cube.041"
+            );
+
+        cube034Target =
+            model.getObjectByName(
+                "Cube.034"
+            );
+
         // Cylinder
         goldenCup =
             model.getObjectByName(
@@ -595,6 +609,16 @@ loader.load(
         console.log(
             "AboutMe:",
             aboutMeTarget
+        );
+
+        console.log(
+            "Cube.041:",
+            cube041
+        );
+
+        console.log(
+            "Cube.034:",
+            cube034Target
         );
 
         console.log(
@@ -812,6 +836,20 @@ renderer.domElement.addEventListener(
             ) {
 
                 showAboutMe();
+
+                return;
+            }
+
+            // CUBE 041 → CUBE 034
+            if (
+                hit === cube041 ||
+                isObjectOrChild(
+                    hit,
+                    cube041
+                )
+            ) {
+
+                showCube034();
 
                 return;
             }
@@ -1066,6 +1104,36 @@ function showAboutMe() {
 
     focusOnObject(
         aboutMeTarget,
+        2.0
+    );
+
+    document.getElementById(
+        "backButton"
+    ).style.display =
+        "block";
+
+    document.getElementById(
+        "cakeButton"
+    ).style.display =
+        "none";
+
+    document.getElementById(
+        "donutButton"
+    ).style.display =
+        "none";
+}
+
+/* =========================
+   CUBE 041 → CUBE 034
+========================= */
+
+function showCube034() {
+
+    currentPage =
+        "cube034";
+
+    focusOnObject(
+        cube034Target,
         2.0
     );
 

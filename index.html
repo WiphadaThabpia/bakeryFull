@@ -97,7 +97,6 @@ renderer.setPixelRatio(
 
 renderer.outputEncoding = THREE.sRGBEncoding;
 
-// Shadow Map
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type =
     THREE.PCFSoftShadowMap;
@@ -208,10 +207,6 @@ let btnPortfolio = null;
 let aboutMeTarget = null;
 let menuCakeTarget = null;
 let menuDonutTarget = null;
-
-// Cube
-let cube041 = null;
-let cube034Target = null;
 
 // Feature Objects
 let goldenCup = null;
@@ -384,7 +379,6 @@ function applyClothShader(object) {
             return;
         }
 
-        // แยก Material ของแต่ละ Plane
         if (node.material) {
             node.material =
                 node.material.clone();
@@ -536,7 +530,7 @@ loader.load(
                     node;
             }
 
-            // Shadow ทุก Mesh
+            // Shadow
             if (node.isMesh) {
 
                 node.castShadow =
@@ -548,6 +542,7 @@ loader.load(
         });
 
         // ABOUT ME
+        // BtnAboutme.002 → Aboutme.001
         btnAboutMe =
             model.getObjectByName(
                 "BtnAboutme.002"
@@ -556,17 +551,6 @@ loader.load(
         aboutMeTarget =
             model.getObjectByName(
                 "Aboutme.001"
-            );
-
-        // CUBE
-        cube041 =
-            model.getObjectByName(
-                "Cube.041"
-            );
-
-        cube034Target =
-            model.getObjectByName(
-                "Cube.034"
             );
 
         // Cylinder
@@ -609,16 +593,6 @@ loader.load(
         console.log(
             "Aboutme.001:",
             aboutMeTarget
-        );
-
-        console.log(
-            "Cube.041:",
-            cube041
-        );
-
-        console.log(
-            "Cube.034:",
-            cube034Target
         );
 
         console.log(
@@ -666,9 +640,7 @@ loader.load(
         camera.position.set(
             box.max.x +
             size.x * 1.6,
-
             center.y,
-
             center.z +
             size.z * 0.15
         );
@@ -704,7 +676,6 @@ loader.load(
             i < cakeToonObjects.length;
             i++
         ) {
-
             applyCakeToon(
                 cakeToonObjects[i]
             );
@@ -716,7 +687,6 @@ loader.load(
             i < clothObjects.length;
             i++
         ) {
-
             applyClothShader(
                 clothObjects[i]
             );
@@ -836,20 +806,6 @@ renderer.domElement.addEventListener(
             ) {
 
                 showAboutMe();
-
-                return;
-            }
-
-            // CUBE 041 → CUBE 034
-            if (
-                hit === cube041 ||
-                isObjectOrChild(
-                    hit,
-                    cube041
-                )
-            ) {
-
-                showCube034();
 
                 return;
             }
@@ -1104,36 +1060,6 @@ function showAboutMe() {
 
     focusOnObject(
         aboutMeTarget,
-        2.0
-    );
-
-    document.getElementById(
-        "backButton"
-    ).style.display =
-        "block";
-
-    document.getElementById(
-        "cakeButton"
-    ).style.display =
-        "none";
-
-    document.getElementById(
-        "donutButton"
-    ).style.display =
-        "none";
-}
-
-/* =========================
-   CUBE 041 → CUBE 034
-========================= */
-
-function showCube034() {
-
-    currentPage =
-        "cube034";
-
-    focusOnObject(
-        cube034Target,
         2.0
     );
 

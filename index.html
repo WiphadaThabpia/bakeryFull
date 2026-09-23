@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,54 +8,199 @@
   <title>Bakery 3D</title>
 
   <style>
-    html, body {
+    html,
+    body {
       height: 100%;
       margin: 0;
+      overflow: hidden;
     }
 
     canvas {
       display: block;
     }
+
+    /* =========================================
+       ปุ่ม Back
+       ใช้เฉพาะตอนเข้าไปดู About / Menu
+    ========================================= */
+
+    #backButton {
+      position: fixed;
+
+      top: 25px;
+      left: 25px;
+
+      z-index: 20;
+
+      display: none;
+
+      border: none;
+      border-radius: 12px;
+
+      padding: 12px 20px;
+
+      background: white;
+      color: #5a4035;
+
+      font-size: 16px;
+
+      cursor: pointer;
+
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    #backButton:hover {
+      background: #fff0f4;
+    }
+
+
+    /* =========================================
+       ปุ่มไป Menu Donut
+    ========================================= */
+
+    #donutButton {
+      position: fixed;
+
+      right: 30px;
+      bottom: 30px;
+
+      z-index: 20;
+
+      display: none;
+
+      border: none;
+      border-radius: 12px;
+
+      padding: 12px 20px;
+
+      background: white;
+      color: #5a4035;
+
+      font-size: 16px;
+
+      cursor: pointer;
+
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    #donutButton:hover {
+      background: #fff0f4;
+    }
+
+
+    /* =========================================
+       ปุ่มกลับไป Menu Cake
+    ========================================= */
+
+    #cakeButton {
+      position: fixed;
+
+      left: 30px;
+      bottom: 30px;
+
+      z-index: 20;
+
+      display: none;
+
+      border: none;
+      border-radius: 12px;
+
+      padding: 12px 20px;
+
+      background: white;
+      color: #5a4035;
+
+      font-size: 16px;
+
+      cursor: pointer;
+
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    #cakeButton:hover {
+      background: #fff0f4;
+    }
   </style>
 
+
+  <!-- Three.js -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+
+  <!-- OrbitControls -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- GLTFLoader -->
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
 </head>
+
 
 <body>
 
+
+  <!-- =========================================
+       BACK
+  ========================================= -->
+
+  <button id="backButton">
+    ← Back
+  </button>
+
+
+  <!-- =========================================
+       MENU DONUT
+  ========================================= -->
+
+  <button id="donutButton">
+    🍩 Menu Donut
+  </button>
+
+
+  <!-- =========================================
+       MENU CAKE
+  ========================================= -->
+
+  <button id="cakeButton">
+    🍰 Menu Cake
+  </button>
+
+
+
 <script>
 
-  // =========================
+  // =====================================================
   // SCENE
-  // =========================
+  // =====================================================
 
   const scene = new THREE.Scene();
 
-  // พื้นหลังสีครีมอ่อน
-  scene.background = new THREE.Color(0xFFF4E3);
+  scene.background =
+    new THREE.Color(0xFFF4E3);
 
 
-  // =========================
+
+  // =====================================================
   // CAMERA
-  // =========================
+  // =====================================================
 
-  const camera = new THREE.PerspectiveCamera(
-    50,
-    innerWidth / innerHeight,
-    0.1,
-    100
-  );
+  const camera =
+    new THREE.PerspectiveCamera(
+      50,
+      innerWidth / innerHeight,
+      0.1,
+      100
+    );
 
 
-  // =========================
+
+  // =====================================================
   // RENDERER
-  // =========================
+  // =====================================================
 
-  const renderer = new THREE.WebGLRenderer({
-    antialias: true
-  });
+  const renderer =
+    new THREE.WebGLRenderer({
+      antialias: true
+    });
 
   renderer.setSize(
     innerWidth,
@@ -65,21 +211,24 @@
     Math.min(devicePixelRatio, 2)
   );
 
-  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.outputEncoding =
+    THREE.sRGBEncoding;
 
   document.body.appendChild(
     renderer.domElement
   );
 
 
-  // =========================
-  // CONTROLS
-  // =========================
 
-  const controls = new THREE.OrbitControls(
-    camera,
-    renderer.domElement
-  );
+  // =====================================================
+  // CONTROLS
+  // =====================================================
+
+  const controls =
+    new THREE.OrbitControls(
+      camera,
+      renderer.domElement
+    );
 
   controls.enableDamping = true;
 
@@ -90,9 +239,10 @@
   controls.maxDistance = 30;
 
 
-  // =========================
+
+  // =====================================================
   // LIGHT
-  // =========================
+  // =====================================================
 
   const ambientLight =
     new THREE.AmbientLight(
@@ -100,7 +250,9 @@
       0.55
     );
 
-  scene.add(ambientLight);
+  scene.add(
+    ambientLight
+  );
 
 
   const light =
@@ -115,91 +267,268 @@
     10
   );
 
-  scene.add(light);
+  scene.add(
+    light
+  );
 
 
-  // =========================
-  // LOAD BAKERY
-  // =========================
+
+  // =====================================================
+  // VARIABLES
+  // =====================================================
+
+  let bakery = null;
+
+  let aboutMe = null;
+
+  let menuCake = null;
+
+  let menuDonut = null;
+
+
+  // ตำแหน่งกล้องหน้าแรก
+  let homeCameraPosition = null;
+
+  let homeTarget = null;
+
+
+
+  // =====================================================
+  // PORTFOLIO
+  // เปลี่ยน URL ตรงนี้
+  // =====================================================
+
+  const PORTFOLIO_URL =
+    'https://example.com';
+
+
+
+  // =====================================================
+  // GLTF LOADER
+  // =====================================================
 
   const loader =
     new THREE.GLTFLoader();
 
+
   loader.load(
+
     'Bekery.glb',
+
+
+    // =================================================
+    // LOAD สำเร็จ
+    // =================================================
 
     function(gltf) {
 
-      const bakery =
+      bakery =
         gltf.scene;
 
-      scene.add(bakery);
+      scene.add(
+        bakery
+      );
 
 
+      // ===============================================
       // หาขนาดโมเดล
+      // ===============================================
+
       const box =
         new THREE.Box3()
-          .setFromObject(bakery);
+          .setFromObject(
+            bakery
+          );
+
 
       const center =
         new THREE.Vector3();
 
-      box.getCenter(center);
+
+      box.getCenter(
+        center
+      );
+
 
       const size =
         new THREE.Vector3();
 
-      box.getSize(size);
+
+      box.getSize(
+        size
+      );
 
 
-      // =========================
+
+      // ===============================================
       // CAMERA POSITION
-      // =========================
-
-      // มุมตามภาพ Blender
-      // มองเข้าหาหน้าร้านตามแกน X
+      // ใช้แบบเดียวกับโค้ดเดิมของหนู
+      // ===============================================
 
       camera.position.set(
+
         box.max.x + size.x * 1.6,
+
         center.y,
+
         center.z + size.z * 0.15
+
       );
 
 
-      // จุดที่กล้องมอง
       controls.target.set(
+
         center.x,
+
         center.y,
+
         center.z
+
       );
+
 
       camera.lookAt(
         controls.target
       );
 
+
       controls.update();
 
 
-      console.log('Bakery loaded');
-      console.log('Size:', size);
-      console.log('Center:', center);
 
-    },
+      // ===============================================
+      // จำตำแหน่งกล้องหน้าแรก
+      // ===============================================
+
+      homeCameraPosition =
+        camera.position.clone();
 
 
-    function(xhr) {
+      homeTarget =
+        controls.target.clone();
 
-      if (xhr.total > 0) {
 
-        console.log(
-          'Loading:',
-          (xhr.loaded / xhr.total * 100).toFixed(0) + '%'
+
+      // ===============================================
+      // หา Object ในโมเดล
+      // ===============================================
+
+      aboutMe =
+        bakery.getObjectByName(
+          'AboutMe'
+        );
+
+
+      menuCake =
+        bakery.getObjectByName(
+          'MenuCake'
+        );
+
+
+      menuDonut =
+        bakery.getObjectByName(
+          'MenuDonut'
+        );
+
+
+
+      // ===============================================
+      // Console
+      // ===============================================
+
+      console.log(
+        'Bakery loaded'
+      );
+
+      console.log(
+        'Size:',
+        size
+      );
+
+      console.log(
+        'Center:',
+        center
+      );
+
+
+      console.log(
+        'AboutMe:',
+        aboutMe
+      );
+
+      console.log(
+        'MenuCake:',
+        menuCake
+      );
+
+      console.log(
+        'MenuDonut:',
+        menuDonut
+      );
+
+
+
+      // ===============================================
+      // ตรวจชื่อ Object
+      // ===============================================
+
+      if (!aboutMe) {
+
+        console.warn(
+          'ไม่พบ Object: AboutMe'
+        );
+
+      }
+
+
+      if (!menuCake) {
+
+        console.warn(
+          'ไม่พบ Object: MenuCake'
+        );
+
+      }
+
+
+      if (!menuDonut) {
+
+        console.warn(
+          'ไม่พบ Object: MenuDonut'
         );
 
       }
 
     },
 
+
+    // =================================================
+    // LOADING
+    // =================================================
+
+    function(xhr) {
+
+      if (xhr.total > 0) {
+
+        console.log(
+
+          'Loading:',
+
+          (
+            xhr.loaded /
+            xhr.total *
+            100
+          ).toFixed(0) + '%'
+
+        );
+
+      }
+
+    },
+
+
+    // =================================================
+    // ERROR
+    // =================================================
 
     function(error) {
 
@@ -209,57 +538,499 @@
       );
 
     }
+
   );
 
 
-  // =========================
-  // RESIZE
-  // =========================
 
+  // =====================================================
+  // GO TO OBJECT
+  // =====================================================
+
+  function goToObject(object) {
+
+    if (!object) {
+
+      console.warn(
+        'ไม่พบ Object ที่ต้องการ'
+      );
+
+      return;
+
+    }
+
+
+    // ===============================================
+    // หา Bounding Box
+    // ===============================================
+
+    const box =
+      new THREE.Box3()
+        .setFromObject(
+          object
+        );
+
+
+    const center =
+      new THREE.Vector3();
+
+
+    box.getCenter(
+      center
+    );
+
+
+    const size =
+      new THREE.Vector3();
+
+
+    box.getSize(
+      size
+    );
+
+
+    // ===============================================
+    // คำนวณระยะกล้อง
+    // ===============================================
+
+    const distance =
+      Math.max(
+        size.x,
+        size.y,
+        size.z,
+        1
+      ) * 5;
+
+
+    // ===============================================
+    // ทิศทางกล้อง
+    // ===============================================
+
+    const direction =
+      new THREE.Vector3(
+        1,
+        0.35,
+        1
+      ).normalize();
+
+
+    const newCameraPosition =
+      center.clone().add(
+        direction.multiplyScalar(
+          distance
+        )
+      );
+
+
+    // ===============================================
+    // ย้ายกล้อง
+    // ===============================================
+
+    camera.position.copy(
+      newCameraPosition
+    );
+
+
+    controls.target.copy(
+      center
+    );
+
+
+    camera.lookAt(
+      center
+    );
+
+
+    controls.update();
+
+  }
+
+
+
+  // =====================================================
+  // GO HOME
+  // =====================================================
+
+  function goHome() {
+
+    if (
+      !homeCameraPosition ||
+      !homeTarget
+    ) {
+
+      return;
+
+    }
+
+
+    camera.position.copy(
+      homeCameraPosition
+    );
+
+
+    controls.target.copy(
+      homeTarget
+    );
+
+
+    camera.lookAt(
+      homeTarget
+    );
+
+
+    controls.update();
+
+
+    // ซ่อนปุ่มทั้งหมด
+    document.getElementById(
+      'backButton'
+    ).style.display = 'none';
+
+
+    document.getElementById(
+      'donutButton'
+    ).style.display = 'none';
+
+
+    document.getElementById(
+      'cakeButton'
+    ).style.display = 'none';
+
+  }
+
+
+
+  // =====================================================
+  // RAYCASTER
+  // สำหรับตรวจว่าคลิกโดนปุ่มไหน
+  // =====================================================
+
+  const raycaster =
+    new THREE.Raycaster();
+
+
+  const mouse =
+    new THREE.Vector2();
+
+
+
+  // =====================================================
+  // ฟังก์ชันหา "ปุ่มที่ถูกคลิก"
+  // =====================================================
+
+  function findButtonObject(object) {
+
+    let current =
+      object;
+
+
+    while (
+      current &&
+      current !== bakery
+    ) {
+
+      // -----------------------------------------------
+      // ถ้าเป็นปุ่มที่เราตั้งชื่อไว้
+      // -----------------------------------------------
+
+      if (
+
+        current.name ===
+          'BtnAboutMe' ||
+
+        current.name ===
+          'BtnMenu' ||
+
+        current.name ===
+          'BtnPortfolio'
+
+      ) {
+
+        return current;
+
+      }
+
+
+      current =
+        current.parent;
+
+    }
+
+
+    return null;
+
+  }
+
+
+
+  // =====================================================
+  // CLICK 3D BUTTON
+  // =====================================================
+
+  renderer.domElement.addEventListener(
+    'click',
+    function(event) {
+      // แปลงตำแหน่งเมาส์เป็น NDC
+      mouse.x =
+        (event.clientX /
+          window.innerWidth) *
+        2 - 1;
+
+
+      mouse.y =
+        -(event.clientY /
+          window.innerHeight) *
+        2 + 1;
+
+
+
+      // ===============================================
+      // ยิง Ray จากกล้อง
+      // ===============================================
+
+      raycaster.setFromCamera(
+        mouse,
+        camera
+      );
+
+
+
+      // ===============================================
+      // ตรวจทุก Object ใน bakery
+      // ===============================================
+
+      if (!bakery) {
+        return;
+      }
+
+
+      const intersections =
+        raycaster.intersectObject(
+          bakery,
+          true
+        );
+
+
+
+      // ไม่มีอะไรถูกคลิก
+      if (
+        intersections.length === 0
+      ) {
+
+        return;
+
+      }
+      // หา Object ปุ่มจริง
+      const clickedObject =
+        findButtonObject(
+          intersections[0].object
+        );
+      if (!clickedObject) {
+        return;
+      }
+      console.log(
+        'Clicked:',
+        clickedObject.name
+      );
+      // ABOUT ME
+      if (
+        clickedObject.name ===
+        'BtnAboutMe'
+      ) {
+
+        goToObject(
+          aboutMe
+        );
+        document.getElementById(
+          'backButton'
+        ).style.display = 'block';
+
+        document.getElementById(
+          'donutButton'
+        ).style.display = 'none';
+
+
+        document.getElementById(
+          'cakeButton'
+        ).style.display = 'none';
+      }
+      // MENU
+      else if (
+        clickedObject.name ===
+        'BtnMenu'
+      ) {
+
+        goToObject(
+          menuCake
+        );
+        document.getElementById(
+          'backButton'
+        ).style.display = 'block';
+
+        document.getElementById(
+          'donutButton'
+        ).style.display = 'block';
+
+        document.getElementById(
+          'cakeButton'
+        ).style.display = 'none';
+
+      }
+      // PORTFOLIO
+      else if (
+        clickedObject.name ===
+        'BtnPortfolio'
+      ) {
+
+        window.open(
+          PORTFOLIO_URL,
+          '_blank'
+        );
+      }
+    }
+  );
+  // HOVER
+  // เปลี่ยน cursor เมื่อเอาเมาส์ไปวางบนปุ่ม
+  renderer.domElement.addEventListener(
+    'mousemove',
+    function(event) {
+
+      if (!bakery) {
+        return;
+      }
+      mouse.x =
+        (event.clientX /
+          window.innerWidth) *
+        2 - 1;
+
+
+      mouse.y =
+        -(event.clientY /
+          window.innerHeight) *
+        2 + 1;
+      raycaster.setFromCamera(
+        mouse,
+        camera
+      );
+      const intersections =
+        raycaster.intersectObject(
+          bakery,
+          true
+        );
+      if (
+        intersections.length === 0
+      ) {
+
+        renderer.domElement.style.cursor =
+          'default';
+
+        return;
+
+      }
+      const button =
+        findButtonObject(
+          intersections[0].object
+        );
+
+
+      if (button) {
+
+        renderer.domElement.style.cursor =
+          'pointer';
+
+      } else {
+
+        renderer.domElement.style.cursor =
+          'default';
+      }
+    }
+  );
+  // BACK BUTTON
+  document.getElementById(
+    'backButton'
+  ).addEventListener(
+    'click',
+    function() {
+
+      goHome();
+
+    }
+  );
+  // DONUT BUTTON
+  document.getElementById(
+    'donutButton'
+  ).addEventListener(
+    'click',
+    function() {
+
+      goToObject(
+        menuDonut
+      );
+
+
+      document.getElementById(
+        'donutButton'
+      ).style.display = 'none';
+
+
+      document.getElementById(
+        'cakeButton'
+      ).style.display = 'block';
+
+    }
+  );
+  // CAKE BUTTON
+  document.getElementById(
+    'cakeButton'
+  ).addEventListener(
+    'click',
+    function() {
+
+      goToObject(
+        menuCake
+      );
+      document.getElementById(
+        'cakeButton'
+      ).style.display = 'none';
+      document.getElementById(
+        'donutButton'
+      ).style.display = 'block';
+
+    }
+  );
+  // RESIZE
   addEventListener(
     'resize',
     () => {
-
       camera.aspect =
-        innerWidth / innerHeight;
-
+        innerWidth /
+        innerHeight;
       camera.updateProjectionMatrix();
-
       renderer.setSize(
         innerWidth,
         innerHeight
       );
-
       renderer.setPixelRatio(
-        Math.min(devicePixelRatio, 2)
+        Math.min(
+          devicePixelRatio,
+          2
+        )
       );
 
     }
   );
-
-
-  // =========================
   // ANIMATION
-  // =========================
-
   function animate() {
-
     requestAnimationFrame(
       animate
     );
-
     controls.update();
-
     renderer.render(
       scene,
       camera
     );
-
   }
-
   animate();
-
 </script>
-
 </body>
 </html>

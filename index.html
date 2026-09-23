@@ -78,8 +78,8 @@ scene.background = new THREE.Color(0xFFF4E3);
 const camera = new THREE.PerspectiveCamera(
     50,
     window.innerWidth / window.innerHeight,
-    0.1,
-    100
+    0.01,
+    200
 );
 
 const renderer = new THREE.WebGLRenderer({
@@ -99,43 +99,50 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 
 // Shadow Map
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type =
+    THREE.PCFSoftShadowMap;
 
-document.body.appendChild(renderer.domElement);
-
-// Orbit Controls
-const controls = new THREE.OrbitControls(
-    camera,
+document.body.appendChild(
     renderer.domElement
 );
 
+// Orbit Controls
+const controls =
+    new THREE.OrbitControls(
+        camera,
+        renderer.domElement
+    );
+
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
+
 controls.enableRotate = true;
 controls.enableZoom = true;
 controls.enablePan = true;
 
-// คลิกซ้าย = หมุน
-controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+controls.mouseButtons.LEFT =
+    THREE.MOUSE.ROTATE;
 
-// คลิกขวา = เลื่อน
-controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
+controls.mouseButtons.RIGHT =
+    THREE.MOUSE.PAN;
 
-// คลิกกลาง = ปิด
-controls.mouseButtons.MIDDLE = null;
+controls.mouseButtons.MIDDLE =
+    null;
 
 // Light
-const ambientLight = new THREE.AmbientLight(
-    0xffffff,
-    0.55
-);
+const ambientLight =
+    new THREE.AmbientLight(
+        0xffffff,
+        0.55
+    );
 
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(
-    0xffffff,
-    0.35
-);
+const directionalLight =
+    new THREE.DirectionalLight(
+        0xffffff,
+        0.35
+    );
 
 directionalLight.position.set(
     5,
@@ -145,31 +152,51 @@ directionalLight.position.set(
 
 directionalLight.castShadow = true;
 
-directionalLight.shadow.mapSize.width = 1024;
-directionalLight.shadow.mapSize.height = 1024;
+directionalLight.shadow.mapSize.width =
+    1024;
 
-directionalLight.shadow.camera.near = 0.1;
-directionalLight.shadow.camera.far = 50;
+directionalLight.shadow.mapSize.height =
+    1024;
 
-scene.add(directionalLight);
+directionalLight.shadow.camera.near =
+    0.1;
+
+directionalLight.shadow.camera.far =
+    50;
+
+scene.add(
+    directionalLight
+);
 
 // PointLight สีส้มปนเหลือง
-const bakeryPointLight = new THREE.PointLight(
-    0xffb35c,
-    1.8,
-    20,
-    2
-);
+const bakeryPointLight =
+    new THREE.PointLight(
+        0xffb35c,
+        1.8,
+        20,
+        2
+    );
 
 bakeryPointLight.castShadow = true;
 
-bakeryPointLight.shadow.mapSize.width = 1024;
-bakeryPointLight.shadow.mapSize.height = 1024;
+bakeryPointLight.shadow.mapSize.width =
+    1024;
 
-bakeryPointLight.shadow.camera.near = 0.1;
-bakeryPointLight.shadow.camera.far = 30;
+bakeryPointLight.shadow.mapSize.height =
+    1024;
 
-scene.add(bakeryPointLight);
+bakeryPointLight.shadow.camera.near =
+    0.1;
+
+bakeryPointLight.shadow.camera.far =
+    30;
+
+bakeryPointLight.shadow.bias =
+    -0.0005;
+
+scene.add(
+    bakeryPointLight
+);
 
 // Objects
 let modelRoot = null;
@@ -192,17 +219,22 @@ let clothObjects = [];
 let clothShaders = [];
 
 // Camera
-let defaultCamPos = new THREE.Vector3();
-let defaultCamTarget = new THREE.Vector3();
+let defaultCamPos =
+    new THREE.Vector3();
+
+let defaultCamTarget =
+    new THREE.Vector3();
 
 let currentPage = null;
 let flyAnimation = null;
 
 // Clock
-const clock = new THREE.Clock();
+const clock =
+    new THREE.Clock();
 
 // GLTF Loader
-const loader = new THREE.GLTFLoader();
+const loader =
+    new THREE.GLTFLoader();
 
 /* =========================
    GRADIENT RAMP
@@ -210,19 +242,21 @@ const loader = new THREE.GLTFLoader();
 
 function createGradientRamp() {
 
-    const colors = new Uint8Array([
-        60, 60, 60, 255,
-        110, 110, 110, 255,
-        180, 180, 180, 255,
-        255, 255, 255, 255
-    ]);
+    const data =
+        new Uint8Array([
+            60, 60, 60, 255,
+            110, 110, 110, 255,
+            180, 180, 180, 255,
+            255, 255, 255, 255
+        ]);
 
-    const gradientMap = new THREE.DataTexture(
-        colors,
-        4,
-        1,
-        THREE.RGBAFormat
-    );
+    const gradientMap =
+        new THREE.DataTexture(
+            data,
+            4,
+            1,
+            THREE.RGBAFormat
+        );
 
     gradientMap.minFilter =
         THREE.NearestFilter;
@@ -230,9 +264,11 @@ function createGradientRamp() {
     gradientMap.magFilter =
         THREE.NearestFilter;
 
-    gradientMap.generateMipmaps = false;
+    gradientMap.generateMipmaps =
+        false;
 
-    gradientMap.needsUpdate = true;
+    gradientMap.needsUpdate =
+        true;
 
     return gradientMap;
 }
@@ -241,7 +277,7 @@ const toonGradient =
     createGradientRamp();
 
 /* =========================
-   GOLD CUP / CYLINDER
+   GOLDEN CYLINDER
 ========================= */
 
 function applyGoldenCup(object) {
@@ -259,23 +295,20 @@ function applyGoldenCup(object) {
             return;
         }
 
-        const oldMaterial =
-            node.material;
-
-        const oldMap =
-            oldMaterial &&
-            oldMaterial.map
-                ? oldMaterial.map
-                : null;
-
         node.material =
             new THREE.MeshPhysicalMaterial({
-                color: 0xd9a441,
-                map: oldMap,
-                metalness: 0.88,
-                roughness: 0.2,
-                clearcoat: 0.7,
-                clearcoatRoughness: 0.12
+                color: 0xD4AF37,
+                metalness: 0.9,
+                roughness: 0.18,
+                clearcoat: 0.75,
+                clearcoatRoughness: 0.1,
+
+                // สำคัญ ป้องกันหายครึ่งหนึ่ง
+                side: THREE.DoubleSide,
+
+                // ให้เขียน depth ตามปกติ
+                depthWrite: true,
+                depthTest: true
             });
 
         node.castShadow = true;
@@ -283,7 +316,7 @@ function applyGoldenCup(object) {
     });
 
     console.log(
-        "Golden Cylinder:",
+        "Golden Cylinder applied:",
         object
     );
 }
@@ -304,31 +337,33 @@ function applyCakeToon(object) {
             return;
         }
 
-        let oldColor =
+        let cakeColor =
             0xffc7a8;
 
         if (
             node.material &&
             node.material.color
         ) {
-            oldColor =
+            cakeColor =
                 node.material.color.getHex();
         }
 
         node.material =
             new THREE.MeshToonMaterial({
-                color: oldColor,
-                gradientMap: toonGradient
+                color: cakeColor,
+                gradientMap: toonGradient,
+                side: THREE.DoubleSide
             });
 
-        node.material.needsUpdate = true;
+        node.material.needsUpdate =
+            true;
 
         node.castShadow = true;
         node.receiveShadow = true;
     });
 
     console.log(
-        "Cake Toon:",
+        "Cake Toon applied:",
         object
     );
 }
@@ -356,14 +391,14 @@ function applyClothShader(object) {
             return;
         }
 
-        const originalOnBeforeCompile =
+        const oldOnBeforeCompile =
             material.onBeforeCompile;
 
         material.onBeforeCompile =
             function(shader, renderer) {
 
-                if (originalOnBeforeCompile) {
-                    originalOnBeforeCompile(
+                if (oldOnBeforeCompile) {
+                    oldOnBeforeCompile(
                         shader,
                         renderer
                     );
@@ -399,7 +434,8 @@ function applyClothShader(object) {
                             ) * 0.015;
 
                         float waveAmount =
-                            abs(transformed.x) * 0.8 + 0.2;
+                            abs(transformed.x) * 0.8 +
+                            0.2;
 
                         transformed.z +=
                             (wave1 + wave2) *
@@ -418,14 +454,15 @@ function applyClothShader(object) {
                 );
             };
 
-        material.needsUpdate = true;
+        material.needsUpdate =
+            true;
 
         node.castShadow = true;
         node.receiveShadow = true;
     });
 
     console.log(
-        "Cloth Shader:",
+        "Cloth Shader applied:",
         object
     );
 }
@@ -439,7 +476,9 @@ loader.load(
 
     function(gltf) {
 
-        const model = gltf.scene;
+        const model =
+            gltf.scene;
+
         modelRoot = model;
 
         model.traverse(function(node) {
@@ -464,21 +503,26 @@ loader.load(
                 node.name ===
                 "MenuCake"
             ) {
-                menuCakeTarget = node;
+                menuCakeTarget =
+                    node;
             }
 
             if (
                 node.name ===
                 "MenuDonut"
             ) {
-                menuDonutTarget = node;
+                menuDonutTarget =
+                    node;
             }
 
-            // Shadow
+            // Shadow ทุก Mesh
             if (node.isMesh) {
 
-                node.castShadow = true;
-                node.receiveShadow = true;
+                node.castShadow =
+                    true;
+
+                node.receiveShadow =
+                    true;
             }
         });
 
@@ -499,7 +543,7 @@ loader.load(
                 "Cylinder"
             );
 
-        // Cake Toon
+        // Cake
         cakeToonObjects = [
             model.getObjectByName(
                 "Cylinder.021"
@@ -531,28 +575,8 @@ loader.load(
         );
 
         console.log(
-            "BtnMenu:",
-            btnMenu
-        );
-
-        console.log(
-            "BtnPortfolio:",
-            btnPortfolio
-        );
-
-        console.log(
             "AboutMe:",
             aboutMeTarget
-        );
-
-        console.log(
-            "MenuCake:",
-            menuCakeTarget
-        );
-
-        console.log(
-            "MenuDonut:",
-            menuDonutTarget
         );
 
         console.log(
@@ -561,38 +585,18 @@ loader.load(
         );
 
         console.log(
-            "Cylinder.021:",
-            cakeToonObjects[0]
+            "Cake Toon:",
+            cakeToonObjects
         );
 
         console.log(
-            "Cylinder.022:",
-            cakeToonObjects[1]
-        );
-
-        console.log(
-            "Cylinder.023:",
-            cakeToonObjects[2]
-        );
-
-        console.log(
-            "Plane.001:",
-            clothObjects[0]
-        );
-
-        console.log(
-            "Plane.002:",
-            clothObjects[1]
-        );
-
-        console.log(
-            "Plane0.003:",
-            clothObjects[2]
+            "Cloth:",
+            clothObjects
         );
 
         scene.add(model);
 
-        // Center Model
+        // Model Bounds
         const box =
             new THREE.Box3()
                 .setFromObject(model);
@@ -610,15 +614,21 @@ loader.load(
         // Point Light Position
         bakeryPointLight.position.set(
             center.x,
-            center.y + size.y * 0.35,
-            center.z + size.z * 0.2
+            center.y +
+            size.y * 0.35,
+            center.z +
+            size.z * 0.2
         );
 
         // Initial Camera
         camera.position.set(
-            box.max.x + size.x * 1.6,
+            box.max.x +
+            size.x * 1.6,
+
             center.y,
-            center.z + size.z * 0.15
+
+            center.z +
+            size.z * 0.15
         );
 
         controls.target.set(
@@ -641,7 +651,7 @@ loader.load(
             controls.target
         );
 
-        // Apply Golden Material
+        // Apply PBR
         applyGoldenCup(
             goldenCup
         );
@@ -657,7 +667,7 @@ loader.load(
             );
         }
 
-        // Apply Cloth Shader
+        // Apply Cloth
         for (
             let i = 0;
             i < clothObjects.length;
@@ -703,7 +713,8 @@ function isObjectOrChild(
         return false;
     }
 
-    let current = object;
+    let current =
+        object;
 
     while (current) {
 
@@ -737,11 +748,13 @@ renderer.domElement.addEventListener(
 
         mouse.x =
             (event.clientX /
-            window.innerWidth) * 2 - 1;
+            window.innerWidth) *
+            2 - 1;
 
         mouse.y =
             -(event.clientY /
-            window.innerHeight) * 2 + 1;
+            window.innerHeight) *
+            2 + 1;
 
         raycaster.setFromCamera(
             mouse,
@@ -978,8 +991,11 @@ function flyCameraTo(
                 targetLookAt
             );
 
-            controls.enabled = true;
-            flyAnimation = null;
+            controls.enabled =
+                true;
+
+            flyAnimation =
+                null;
         }
     }
 
@@ -995,7 +1011,8 @@ function flyCameraTo(
 
 function showMenu() {
 
-    currentPage = "menu";
+    currentPage =
+        "menu";
 
     focusOnObject(
         menuCakeTarget,
@@ -1004,15 +1021,18 @@ function showMenu() {
 
     document.getElementById(
         "backButton"
-    ).style.display = "block";
+    ).style.display =
+        "block";
 
     document.getElementById(
         "cakeButton"
-    ).style.display = "none";
+    ).style.display =
+        "none";
 
     document.getElementById(
         "donutButton"
-    ).style.display = "block";
+    ).style.display =
+        "block";
 }
 
 /* =========================
@@ -1021,7 +1041,8 @@ function showMenu() {
 
 function showAboutMe() {
 
-    currentPage = "about";
+    currentPage =
+        "about";
 
     focusOnObject(
         aboutMeTarget,
@@ -1030,15 +1051,18 @@ function showAboutMe() {
 
     document.getElementById(
         "backButton"
-    ).style.display = "block";
+    ).style.display =
+        "block";
 
     document.getElementById(
         "cakeButton"
-    ).style.display = "none";
+    ).style.display =
+        "none";
 
     document.getElementById(
         "donutButton"
-    ).style.display = "none";
+    ).style.display =
+        "none";
 }
 
 /* =========================
@@ -1047,7 +1071,8 @@ function showAboutMe() {
 
 function showCake() {
 
-    currentPage = "menu";
+    currentPage =
+        "menu";
 
     focusOnObject(
         menuCakeTarget,
@@ -1056,11 +1081,13 @@ function showCake() {
 
     document.getElementById(
         "cakeButton"
-    ).style.display = "none";
+    ).style.display =
+        "none";
 
     document.getElementById(
         "donutButton"
-    ).style.display = "block";
+    ).style.display =
+        "block";
 }
 
 /* =========================
@@ -1069,7 +1096,8 @@ function showCake() {
 
 function showDonut() {
 
-    currentPage = "menu";
+    currentPage =
+        "menu";
 
     focusOnObject(
         menuDonutTarget,
@@ -1078,11 +1106,13 @@ function showDonut() {
 
     document.getElementById(
         "cakeButton"
-    ).style.display = "block";
+    ).style.display =
+        "block";
 
     document.getElementById(
         "donutButton"
-    ).style.display = "none";
+    ).style.display =
+        "none";
 }
 
 /* =========================
@@ -1091,7 +1121,8 @@ function showDonut() {
 
 function goBack() {
 
-    currentPage = null;
+    currentPage =
+        null;
 
     flyCameraTo(
         defaultCamPos,
@@ -1101,15 +1132,18 @@ function goBack() {
 
     document.getElementById(
         "backButton"
-    ).style.display = "none";
+    ).style.display =
+        "none";
 
     document.getElementById(
         "cakeButton"
-    ).style.display = "none";
+    ).style.display =
+        "none";
 
     document.getElementById(
         "donutButton"
-    ).style.display = "none";
+    ).style.display =
+        "none";
 }
 
 /* =========================
@@ -1152,7 +1186,7 @@ document.getElementById(
 );
 
 /* =========================
-   UPDATE CLOTH SHADER
+   UPDATE CLOTH
 ========================= */
 
 function updateClothShaders(time) {
@@ -1175,7 +1209,8 @@ function updateClothShaders(time) {
                 .clothShader
                 .uniforms
                 .uTime
-                .value = time;
+                .value =
+                time;
         }
     }
 }
@@ -1200,7 +1235,6 @@ function animate() {
     if (
         controls.enabled
     ) {
-
         controls.update();
     }
 

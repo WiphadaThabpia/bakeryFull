@@ -208,14 +208,8 @@ let aboutMeTarget = null;
 let menuCakeTarget = null;
 let menuDonutTarget = null;
 
-// Feature Objects
+// PBR Object
 let goldenCup = null;
-
-let cakeToonObjects = [];
-
-let clothObjects = [];
-
-let clothMaterials = [];
 
 // Camera
 let defaultCamPos =
@@ -234,6 +228,44 @@ const clock =
 // GLTF Loader
 const loader =
     new THREE.GLTFLoader();
+
+/* =========================
+   FIND OBJECT BY NAME
+========================= */
+
+function findObjectByName(
+    root,
+    targetName
+) {
+
+    const wanted =
+        targetName
+            .trim()
+            .toLowerCase();
+
+    let found = null;
+
+    root.traverse(function(node) {
+
+        if (!node.name) {
+            return;
+        }
+
+        const currentName =
+            node.name
+                .trim()
+                .toLowerCase();
+
+        if (
+            currentName === wanted &&
+            !found
+        ) {
+            found = node;
+        }
+    });
+
+    return found;
+}
 
 /* =========================
    GRADIENT RAMP
@@ -317,172 +349,6 @@ function applyGoldenCup(object) {
 }
 
 /* =========================
-   CAKE TOON
-========================= */
-
-function applyCakeToon(object) {
-
-    if (!object) {
-        return;
-    }
-
-    object.traverse(function(node) {
-
-        if (!node.isMesh) {
-            return;
-        }
-
-        let cakeColor =
-            0xffc7a8;
-
-        if (
-            node.material &&
-            node.material.color
-        ) {
-            cakeColor =
-                node.material.color.getHex();
-        }
-
-        node.material =
-            new THREE.MeshToonMaterial({
-                color: cakeColor,
-                gradientMap: toonGradient,
-                side: THREE.DoubleSide
-            });
-
-        node.material.needsUpdate =
-            true;
-
-        node.castShadow = true;
-        node.receiveShadow = true;
-    });
-
-    console.log(
-        "Cake Toon applied:",
-        object
-    );
-}
-
-/* =========================
-   CLOTH SHADER
-========================= */
-
-function applyClothShader(object) {
-
-    if (!object) {
-        return;
-    }
-
-    object.traverse(function(node) {
-
-        if (!node.isMesh) {
-            return;
-        }
-
-        if (node.material) {
-            node.material =
-                node.material.clone();
-        }
-
-        const material =
-            node.material;
-
-        if (!material) {
-            return;
-        }
-
-        const oldOnBeforeCompile =
-            material.onBeforeCompile;
-
-        material.onBeforeCompile =
-            function(shader, renderer) {
-
-                if (oldOnBeforeCompile) {
-                    oldOnBeforeCompile(
-                        shader,
-                        renderer
-                    );
-                }
-
-                shader.uniforms.uTime = {
-                    value: 0
-                };
-
-                shader.uniforms.uStrength = {
-                    value: 0.18
-                };
-
-                shader.uniforms.uSpeed = {
-                    value: 2.8
-                };
-
-                shader.vertexShader =
-                    shader.vertexShader.replace(
-                        "#include <begin_vertex>",
-
-                        `
-                        #include <begin_vertex>
-
-                        float wave1 =
-                            sin(
-                                transformed.x * 7.0 +
-                                uTime * uSpeed
-                            );
-
-                        float wave2 =
-                            sin(
-                                transformed.y * 5.0 +
-                                uTime * (uSpeed * 1.35)
-                            );
-
-                        float wave3 =
-                            sin(
-                                (
-                                    transformed.x +
-                                    transformed.y
-                                ) * 10.0 +
-                                uTime * 4.0
-                            );
-
-                        float movement =
-                            (
-                                wave1 * 0.55 +
-                                wave2 * 0.30 +
-                                wave3 * 0.15
-                            ) * uStrength;
-
-                        transformed +=
-                            normal * movement;
-                        `
-                    );
-
-                material.userData.clothShader =
-                    shader;
-            };
-
-        material.customProgramCacheKey =
-            function() {
-                return "bakery-cloth-v3";
-            };
-
-        material.needsUpdate =
-            true;
-
-        clothMaterials.push(
-            material
-        );
-
-        node.castShadow = true;
-        node.receiveShadow = true;
-    });
-
-    console.log(
-        "Cloth Shader applied:",
-        object.name
-    );
-}
-
-/* =========================
    LOAD MODEL
 ========================= */
 
@@ -496,9 +362,12 @@ loader.load(
 
         modelRoot = model;
 
+        /* =========================
+           FIND MAIN OBJECTS
+        ========================= */
+
         model.traverse(function(node) {
 
-            // Main Buttons
             if (
                 node.name ===
                 "BtnMenu"
@@ -513,77 +382,56 @@ loader.load(
                 btnPortfolio = node;
             }
 
-            // Camera Targets
             if (
                 node.name ===
                 "MenuCake"
             ) {
-                menuCakeTarget =
-                    node;
+                menuCakeTarget = node;
             }
 
             if (
                 node.name ===
                 "MenuDonut"
             ) {
-                menuDonutTarget =
-                    node;
+                menuDonutTarget = node;
             }
 
-            // Shadow
             if (node.isMesh) {
 
-                node.castShadow =
-                    true;
-
-                node.receiveShadow =
-                    true;
+                node.castShadow = true;
+                node.receiveShadow = true;
             }
         });
 
-        // ABOUT ME
-        // BtnAboutme.002 → Aboutme.001
+        /* =========================
+           ABOUT ME
+        ========================= */
+
         btnAboutMe =
-            model.getObjectByName(
+            findObjectByName(
+                model,
                 "BtnAboutme.002"
             );
 
         aboutMeTarget =
-            model.getObjectByName(
+            findObjectByName(
+                model,
                 "Aboutme.001"
             );
 
-        // Cylinder
+        /* =========================
+           CYLINDER
+        ========================= */
+
         goldenCup =
-            model.getObjectByName(
+            findObjectByName(
+                model,
                 "Cylinder"
             );
 
-        // Cake
-        cakeToonObjects = [
-            model.getObjectByName(
-                "Cylinder.021"
-            ),
-            model.getObjectByName(
-                "Cylinder.022"
-            ),
-            model.getObjectByName(
-                "Cylinder.023"
-            )
-        ].filter(Boolean);
-
-        // Cloth
-        clothObjects = [
-            model.getObjectByName(
-                "Plane.001"
-            ),
-            model.getObjectByName(
-                "Plane.002"
-            ),
-            model.getObjectByName(
-                "Plane0.003"
-            )
-        ].filter(Boolean);
+        /* =========================
+           DEBUG
+        ========================= */
 
         console.log(
             "BtnAboutme.002:",
@@ -601,18 +449,35 @@ loader.load(
         );
 
         console.log(
-            "Cake Toon:",
-            cakeToonObjects
+            "BtnMenu:",
+            btnMenu
         );
 
         console.log(
-            "Cloth:",
-            clothObjects
+            "BtnPortfolio:",
+            btnPortfolio
         );
+
+        console.log(
+            "MenuCake:",
+            menuCakeTarget
+        );
+
+        console.log(
+            "MenuDonut:",
+            menuDonutTarget
+        );
+
+        /* =========================
+           ADD MODEL
+        ========================= */
 
         scene.add(model);
 
-        // Model Bounds
+        /* =========================
+           MODEL BOUNDS
+        ========================= */
+
         const box =
             new THREE.Box3()
                 .setFromObject(model);
@@ -627,7 +492,10 @@ loader.load(
                 new THREE.Vector3()
             );
 
-        // Point Light Position
+        /* =========================
+           POINT LIGHT POSITION
+        ========================= */
+
         bakeryPointLight.position.set(
             center.x,
             center.y +
@@ -636,7 +504,10 @@ loader.load(
             size.z * 0.2
         );
 
-        // Initial Camera
+        /* =========================
+           INITIAL CAMERA
+        ========================= */
+
         camera.position.set(
             box.max.x +
             size.x * 1.6,
@@ -665,32 +536,13 @@ loader.load(
             controls.target
         );
 
-        // Apply PBR
+        /* =========================
+           APPLY PBR
+        ========================= */
+
         applyGoldenCup(
             goldenCup
         );
-
-        // Apply Toon
-        for (
-            let i = 0;
-            i < cakeToonObjects.length;
-            i++
-        ) {
-            applyCakeToon(
-                cakeToonObjects[i]
-            );
-        }
-
-        // Apply Cloth
-        for (
-            let i = 0;
-            i < clothObjects.length;
-            i++
-        ) {
-            applyClothShader(
-                clothObjects[i]
-            );
-        }
 
         console.log(
             "Bekery loaded"
@@ -796,7 +648,8 @@ renderer.domElement.addEventListener(
             const hit =
                 intersects[i].object;
 
-            // ABOUT ME
+            /* ABOUT ME */
+
             if (
                 hit === btnAboutMe ||
                 isObjectOrChild(
@@ -810,7 +663,8 @@ renderer.domElement.addEventListener(
                 return;
             }
 
-            // MENU
+            /* MENU */
+
             if (
                 isObjectOrChild(
                     hit,
@@ -823,7 +677,8 @@ renderer.domElement.addEventListener(
                 return;
             }
 
-            // PORTFOLIO
+            /* PORTFOLIO */
+
             if (
                 isObjectOrChild(
                     hit,
@@ -854,7 +709,7 @@ function focusOnObject(
     if (!object) {
 
         console.warn(
-            "ไม่พบ Target"
+            "ไม่พบ Target สำหรับกล้อง"
         );
 
         return;
@@ -1005,11 +860,8 @@ function flyCameraTo(
                 targetLookAt
             );
 
-            controls.enabled =
-                true;
-
-            flyAnimation =
-                null;
+            controls.enabled = true;
+            flyAnimation = null;
         }
     }
 
@@ -1025,8 +877,7 @@ function flyCameraTo(
 
 function showMenu() {
 
-    currentPage =
-        "menu";
+    currentPage = "menu";
 
     focusOnObject(
         menuCakeTarget,
@@ -1035,18 +886,15 @@ function showMenu() {
 
     document.getElementById(
         "backButton"
-    ).style.display =
-        "block";
+    ).style.display = "block";
 
     document.getElementById(
         "cakeButton"
-    ).style.display =
-        "none";
+    ).style.display = "none";
 
     document.getElementById(
         "donutButton"
-    ).style.display =
-        "block";
+    ).style.display = "block";
 }
 
 /* =========================
@@ -1055,8 +903,7 @@ function showMenu() {
 
 function showAboutMe() {
 
-    currentPage =
-        "about";
+    currentPage = "about";
 
     focusOnObject(
         aboutMeTarget,
@@ -1065,18 +912,15 @@ function showAboutMe() {
 
     document.getElementById(
         "backButton"
-    ).style.display =
-        "block";
+    ).style.display = "block";
 
     document.getElementById(
         "cakeButton"
-    ).style.display =
-        "none";
+    ).style.display = "none";
 
     document.getElementById(
         "donutButton"
-    ).style.display =
-        "none";
+    ).style.display = "none";
 }
 
 /* =========================
@@ -1085,8 +929,7 @@ function showAboutMe() {
 
 function showCake() {
 
-    currentPage =
-        "menu";
+    currentPage = "menu";
 
     focusOnObject(
         menuCakeTarget,
@@ -1095,13 +938,11 @@ function showCake() {
 
     document.getElementById(
         "cakeButton"
-    ).style.display =
-        "none";
+    ).style.display = "none";
 
     document.getElementById(
         "donutButton"
-    ).style.display =
-        "block";
+    ).style.display = "block";
 }
 
 /* =========================
@@ -1110,8 +951,7 @@ function showCake() {
 
 function showDonut() {
 
-    currentPage =
-        "menu";
+    currentPage = "menu";
 
     focusOnObject(
         menuDonutTarget,
@@ -1120,13 +960,11 @@ function showDonut() {
 
     document.getElementById(
         "cakeButton"
-    ).style.display =
-        "block";
+    ).style.display = "block";
 
     document.getElementById(
         "donutButton"
-    ).style.display =
-        "none";
+    ).style.display = "none";
 }
 
 /* =========================
@@ -1135,8 +973,7 @@ function showDonut() {
 
 function goBack() {
 
-    currentPage =
-        null;
+    currentPage = null;
 
     flyCameraTo(
         defaultCamPos,
@@ -1146,18 +983,15 @@ function goBack() {
 
     document.getElementById(
         "backButton"
-    ).style.display =
-        "none";
+    ).style.display = "none";
 
     document.getElementById(
         "cakeButton"
-    ).style.display =
-        "none";
+    ).style.display = "none";
 
     document.getElementById(
         "donutButton"
-    ).style.display =
-        "none";
+    ).style.display = "none";
 }
 
 /* =========================
@@ -1200,36 +1034,6 @@ document.getElementById(
 );
 
 /* =========================
-   UPDATE CLOTH SHADERS
-========================= */
-
-function updateClothShaders(time) {
-
-    for (
-        let i = 0;
-        i < clothMaterials.length;
-        i++
-    ) {
-
-        const material =
-            clothMaterials[i];
-
-        if (
-            material &&
-            material.userData &&
-            material.userData.clothShader
-        ) {
-
-            material.userData
-                .clothShader
-                .uniforms
-                .uTime
-                .value = time;
-        }
-    }
-}
-
-/* =========================
    ANIMATION
 ========================= */
 
@@ -1239,17 +1043,9 @@ function animate() {
         animate
     );
 
-    const time =
-        clock.getElapsedTime();
-
-    updateClothShaders(
-        time
-    );
-
     if (
         controls.enabled
     ) {
-
         controls.update();
     }
 

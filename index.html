@@ -216,7 +216,7 @@ let cakeToonObjects = [];
 
 let clothObjects = [];
 
-let clothShaders = [];
+let clothMaterials = [];
 
 // Camera
 let defaultCamPos =
@@ -302,11 +302,7 @@ function applyGoldenCup(object) {
                 roughness: 0.18,
                 clearcoat: 0.75,
                 clearcoatRoughness: 0.1,
-
-                // สำคัญ ป้องกันหายครึ่งหนึ่ง
                 side: THREE.DoubleSide,
-
-                // ให้เขียน depth ตามปกติ
                 depthWrite: true,
                 depthTest: true
             });
@@ -384,6 +380,13 @@ function applyClothShader(object) {
             return;
         }
 
+        // แยก Material ของแต่ละ Plane
+        // เพื่อไม่ให้ Shader ชนกัน
+        if (node.material) {
+            node.material =
+                node.material.clone();
+        }
+
         const material =
             node.material;
 
@@ -408,6 +411,14 @@ function applyClothShader(object) {
                     value: 0
                 };
 
+                shader.uniforms.uStrength = {
+                    value: 0.18
+                };
+
+                shader.uniforms.uSpeed = {
+                    value: 2.8
+                };
+
                 shader.vertexShader =
                     shader.vertexShader.replace(
                         "#include <begin_vertex>",
@@ -417,45 +428,52 @@ function applyClothShader(object) {
 
                         float wave1 =
                             sin(
-                                transformed.x * 5.0 +
-                                uTime * 2.5
-                            ) * 0.06;
+                                transformed.x * 7.0 +
+                                uTime * uSpeed
+                            );
 
                         float wave2 =
                             sin(
-                                transformed.x * 10.0 +
-                                uTime * 4.0
-                            ) * 0.02;
+                                transformed.y * 5.0 +
+                                uTime * (uSpeed * 1.35)
+                            );
 
                         float wave3 =
                             sin(
-                                transformed.y * 4.0 +
-                                uTime * 2.0
-                            ) * 0.015;
+                                (
+                                    transformed.x +
+                                    transformed.y
+                                ) * 10.0 +
+                                uTime * 4.0
+                            );
 
-                        float waveAmount =
-                            abs(transformed.x) * 0.8 +
-                            0.2;
+                        float movement =
+                            (
+                                wave1 * 0.55 +
+                                wave2 * 0.30 +
+                                wave3 * 0.15
+                            ) * uStrength;
 
-                        transformed.z +=
-                            (wave1 + wave2) *
-                            waveAmount;
-
-                        transformed.y +=
-                            wave3;
+                        transformed +=
+                            normal * movement;
                         `
                     );
 
                 material.userData.clothShader =
                     shader;
+            };
 
-                clothShaders.push(
-                    material
-                );
+        material.customProgramCacheKey =
+            function() {
+                return "bakery-cloth-v3";
             };
 
         material.needsUpdate =
             true;
+
+        clothMaterials.push(
+            material
+        );
 
         node.castShadow = true;
         node.receiveShadow = true;
@@ -463,7 +481,7 @@ function applyClothShader(object) {
 
     console.log(
         "Cloth Shader applied:",
-        object
+        object.name
     );
 }
 
@@ -662,6 +680,7 @@ loader.load(
             i < cakeToonObjects.length;
             i++
         ) {
+
             applyCakeToon(
                 cakeToonObjects[i]
             );
@@ -673,6 +692,7 @@ loader.load(
             i < clothObjects.length;
             i++
         ) {
+
             applyClothShader(
                 clothObjects[i]
             );
@@ -1186,21 +1206,22 @@ document.getElementById(
 );
 
 /* =========================
-   UPDATE CLOTH
+   UPDATE CLOTH SHADERS
 ========================= */
 
 function updateClothShaders(time) {
 
     for (
         let i = 0;
-        i < clothShaders.length;
+        i < clothMaterials.length;
         i++
     ) {
 
         const material =
-            clothShaders[i];
+            clothMaterials[i];
 
         if (
+            material &&
             material.userData &&
             material.userData.clothShader
         ) {
@@ -1209,8 +1230,7 @@ function updateClothShaders(time) {
                 .clothShader
                 .uniforms
                 .uTime
-                .value =
-                time;
+                .value = time;
         }
     }
 }
@@ -1235,6 +1255,7 @@ function animate() {
     if (
         controls.enabled
     ) {
+
         controls.update();
     }
 

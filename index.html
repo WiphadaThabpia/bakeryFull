@@ -172,17 +172,7 @@ loader.load(
 
         model.traverse(function(node) {
 
-            /*
-                สำคัญ:
-                หา Object ก่อนเช็ก isMesh
-                เพราะบาง Object อาจเป็น Group / Object3D / Empty
-            */
-
             // Main Buttons
-            if (node.name === "BtnAboutme.001") {
-                btnAboutMe = node;
-            }
-
             if (node.name === "BtnMenu") {
                 btnMenu = node;
             }
@@ -192,10 +182,6 @@ loader.load(
             }
 
             // Camera Targets
-            if (node.name === "AboutMe") {
-                aboutMeTarget = node;
-            }
-
             if (node.name === "MenuCake") {
                 menuCakeTarget = node;
             }
@@ -204,13 +190,13 @@ loader.load(
                 menuDonutTarget = node;
             }
 
-            /*
-                หลังจากหา Object แล้ว
-                ค่อยเช็กว่าเป็น Mesh หรือไม่
-            */
-
             if (!node.isMesh) return;
         });
+
+        // ABOUT ME
+        // จับคู่ปุ่มกับ Target โดยตรง
+        btnAboutMe = model.getObjectByName("BtnAboutme.001");
+        aboutMeTarget = model.getObjectByName("AboutMe");
 
         console.log("BtnAboutme.001:", btnAboutMe);
         console.log("BtnMenu:", btnMenu);
@@ -338,6 +324,7 @@ renderer.domElement.addEventListener(
 
             // ABOUT ME
             if (
+                hit === btnAboutMe ||
                 isObjectOrChild(
                     hit,
                     btnAboutMe

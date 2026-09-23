@@ -604,21 +604,14 @@
   // อยู่ด้านขวา = +Y
   // =====================================================
 
-  function goToMenuDonut() {
+ function goToMenuDonut() {
 
-    moveCameraToBoard(
+  moveCameraToBoard(
+    menuDonut,
+    new THREE.Vector3(0, -1, 0)
+  );
 
-      menuDonut,
-
-      new THREE.Vector3(
-        0,
-        1,
-        0
-      )
-
-    );
-
-  }
+}
 
 
   // =====================================================

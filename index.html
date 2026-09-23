@@ -72,6 +72,7 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
 <script>
+
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xFFF4E3);
 
@@ -95,7 +96,8 @@ renderer.setPixelRatio(
     Math.min(window.devicePixelRatio, 2)
 );
 
-renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.outputEncoding =
+    THREE.sRGBEncoding;
 
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type =
@@ -105,7 +107,10 @@ document.body.appendChild(
     renderer.domElement
 );
 
-// Orbit Controls
+// =========================
+// CONTROLS
+// =========================
+
 const controls =
     new THREE.OrbitControls(
         camera,
@@ -128,7 +133,10 @@ controls.mouseButtons.RIGHT =
 controls.mouseButtons.MIDDLE =
     null;
 
-// Light
+// =========================
+// LIGHT
+// =========================
+
 const ambientLight =
     new THREE.AmbientLight(
         0xffffff,
@@ -167,7 +175,7 @@ scene.add(
     directionalLight
 );
 
-// PointLight สีส้มปนเหลือง
+// Bakery Point Light
 const bakeryPointLight =
     new THREE.PointLight(
         0xffb35c,
@@ -190,14 +198,14 @@ bakeryPointLight.shadow.camera.near =
 bakeryPointLight.shadow.camera.far =
     30;
 
-bakeryPointLight.shadow.bias =
-    -0.0005;
-
 scene.add(
     bakeryPointLight
 );
 
-// Objects
+// =========================
+// OBJECTS
+// =========================
+
 let modelRoot = null;
 
 let btnAboutMe = null;
@@ -208,10 +216,8 @@ let aboutMeTarget = null;
 let menuCakeTarget = null;
 let menuDonutTarget = null;
 
-// PBR Object
 let goldenCup = null;
 
-// Camera
 let defaultCamPos =
     new THREE.Vector3();
 
@@ -221,102 +227,43 @@ let defaultCamTarget =
 let currentPage = null;
 let flyAnimation = null;
 
-// Clock
-const clock =
-    new THREE.Clock();
+// =========================
+// FIND OBJECT
+// =========================
 
-// GLTF Loader
-const loader =
-    new THREE.GLTFLoader();
-
-/* =========================
-   FIND OBJECT BY NAME
-========================= */
-
-function findObjectByName(
+function findObject(
     root,
-    targetName
+    objectName
 ) {
 
-    const wanted =
-        targetName
-            .trim()
-            .toLowerCase();
-
-    let found = null;
+    let result = null;
 
     root.traverse(function(node) {
 
-        if (!node.name) {
-            return;
-        }
-
-        const currentName =
-            node.name
-                .trim()
-                .toLowerCase();
-
         if (
-            currentName === wanted &&
-            !found
+            node.name &&
+            node.name.trim().toLowerCase() ===
+            objectName.trim().toLowerCase()
         ) {
-            found = node;
+
+            if (!result) {
+                result = node;
+            }
         }
     });
 
-    return found;
+    return result;
 }
 
-/* =========================
-   GRADIENT RAMP
-========================= */
+// =========================
+// GOLD MATERIAL
+// =========================
 
-function createGradientRamp() {
-
-    const data =
-        new Uint8Array([
-            60, 60, 60, 255,
-            110, 110, 110, 255,
-            180, 180, 180, 255,
-            255, 255, 255, 255
-        ]);
-
-    const gradientMap =
-        new THREE.DataTexture(
-            data,
-            4,
-            1,
-            THREE.RGBAFormat
-        );
-
-    gradientMap.minFilter =
-        THREE.NearestFilter;
-
-    gradientMap.magFilter =
-        THREE.NearestFilter;
-
-    gradientMap.generateMipmaps =
-        false;
-
-    gradientMap.needsUpdate =
-        true;
-
-    return gradientMap;
-}
-
-const toonGradient =
-    createGradientRamp();
-
-/* =========================
-   GOLDEN CYLINDER
-========================= */
-
-function applyGoldenCup(object) {
+function applyGoldenCup(
+    object
+) {
 
     if (!object) {
-        console.warn(
-            "ไม่พบ Cylinder"
-        );
         return;
     }
 
@@ -333,27 +280,23 @@ function applyGoldenCup(object) {
                 roughness: 0.18,
                 clearcoat: 0.75,
                 clearcoatRoughness: 0.1,
-                side: THREE.DoubleSide,
-                depthWrite: true,
-                depthTest: true
+                side: THREE.DoubleSide
             });
 
         node.castShadow = true;
         node.receiveShadow = true;
     });
-
-    console.log(
-        "Golden Cylinder applied:",
-        object
-    );
 }
 
-/* =========================
-   LOAD MODEL
-========================= */
+// =========================
+// LOAD MODEL
+// =========================
+
+const loader =
+    new THREE.GLTFLoader();
 
 loader.load(
-    "./Bekery.glb",
+    "./Bekery.glb?v=2",
 
     function(gltf) {
 
@@ -362,40 +305,59 @@ loader.load(
 
         modelRoot = model;
 
-        /* =========================
-           FIND MAIN OBJECTS
-        ========================= */
+        // =========================
+        // FIND OBJECTS
+        // =========================
 
         model.traverse(function(node) {
 
+            // ABOUT BUTTON
             if (
-                node.name ===
-                "BtnMenu"
+                node.name &&
+                node.name.trim().toLowerCase() ===
+                "btnaboutme.002"
+            ) {
+                btnAboutMe = node;
+            }
+
+            // ABOUT TARGET
+            if (
+                node.name &&
+                node.name.trim().toLowerCase() ===
+                "aboutme.001"
+            ) {
+                aboutMeTarget = node;
+            }
+
+            // MENU
+            if (
+                node.name === "BtnMenu"
             ) {
                 btnMenu = node;
             }
 
+            // PORTFOLIO
             if (
-                node.name ===
-                "BtnPortfolio"
+                node.name === "BtnPortfolio"
             ) {
                 btnPortfolio = node;
             }
 
+            // MENU CAKE
             if (
-                node.name ===
-                "MenuCake"
+                node.name === "MenuCake"
             ) {
                 menuCakeTarget = node;
             }
 
+            // MENU DONUT
             if (
-                node.name ===
-                "MenuDonut"
+                node.name === "MenuDonut"
             ) {
                 menuDonutTarget = node;
             }
 
+            // SHADOW
             if (node.isMesh) {
 
                 node.castShadow = true;
@@ -403,35 +365,23 @@ loader.load(
             }
         });
 
-        /* =========================
-           ABOUT ME
-        ========================= */
-
-        btnAboutMe =
-            findObjectByName(
-                model,
-                "BtnAboutme.002"
-            );
-
-        aboutMeTarget =
-            findObjectByName(
-                model,
-                "Aboutme.001"
-            );
-
-        /* =========================
-           CYLINDER
-        ========================= */
+        // =========================
+        // CYLINDER
+        // =========================
 
         goldenCup =
-            findObjectByName(
+            findObject(
                 model,
                 "Cylinder"
             );
 
-        /* =========================
-           DEBUG
-        ========================= */
+        // =========================
+        // DEBUG
+        // =========================
+
+        console.log(
+            "========== BAKERY OBJECTS =========="
+        );
 
         console.log(
             "BtnAboutme.002:",
@@ -441,11 +391,6 @@ loader.load(
         console.log(
             "Aboutme.001:",
             aboutMeTarget
-        );
-
-        console.log(
-            "Cylinder:",
-            goldenCup
         );
 
         console.log(
@@ -468,15 +413,24 @@ loader.load(
             menuDonutTarget
         );
 
-        /* =========================
-           ADD MODEL
-        ========================= */
+        console.log(
+            "Cylinder:",
+            goldenCup
+        );
+
+        console.log(
+            "===================================="
+        );
+
+        // =========================
+        // ADD MODEL
+        // =========================
 
         scene.add(model);
 
-        /* =========================
-           MODEL BOUNDS
-        ========================= */
+        // =========================
+        // MODEL SIZE
+        // =========================
 
         const box =
             new THREE.Box3()
@@ -492,28 +446,24 @@ loader.load(
                 new THREE.Vector3()
             );
 
-        /* =========================
-           POINT LIGHT POSITION
-        ========================= */
+        // =========================
+        // POINT LIGHT POSITION
+        // =========================
 
         bakeryPointLight.position.set(
             center.x,
-            center.y +
-            size.y * 0.35,
-            center.z +
-            size.z * 0.2
+            center.y + size.y * 0.35,
+            center.z + size.z * 0.2
         );
 
-        /* =========================
-           INITIAL CAMERA
-        ========================= */
+        // =========================
+        // DEFAULT CAMERA
+        // =========================
 
         camera.position.set(
-            box.max.x +
-            size.x * 1.6,
+            box.max.x + size.x * 1.6,
             center.y,
-            center.z +
-            size.z * 0.15
+            center.z + size.z * 0.15
         );
 
         controls.target.set(
@@ -536,9 +486,9 @@ loader.load(
             controls.target
         );
 
-        /* =========================
-           APPLY PBR
-        ========================= */
+        // =========================
+        // GOLD CYLINDER
+        // =========================
 
         applyGoldenCup(
             goldenCup
@@ -560,9 +510,9 @@ loader.load(
     }
 );
 
-/* =========================
-   RAYCASTER
-========================= */
+// =========================
+// RAYCASTER
+// =========================
 
 const raycaster =
     new THREE.Raycaster();
@@ -597,9 +547,9 @@ function isObjectOrChild(
     return false;
 }
 
-/* =========================
-   CLICK
-========================= */
+// =========================
+// CLICK
+// =========================
 
 renderer.domElement.addEventListener(
     "click",
@@ -614,13 +564,11 @@ renderer.domElement.addEventListener(
 
         mouse.x =
             (event.clientX /
-            window.innerWidth) *
-            2 - 1;
+            window.innerWidth) * 2 - 1;
 
         mouse.y =
             -(event.clientY /
-            window.innerHeight) *
-            2 + 1;
+            window.innerHeight) * 2 + 1;
 
         raycaster.setFromCamera(
             mouse,
@@ -648,10 +596,8 @@ renderer.domElement.addEventListener(
             const hit =
                 intersects[i].object;
 
-            /* ABOUT ME */
-
+            // ABOUT ME
             if (
-                hit === btnAboutMe ||
                 isObjectOrChild(
                     hit,
                     btnAboutMe
@@ -663,8 +609,7 @@ renderer.domElement.addEventListener(
                 return;
             }
 
-            /* MENU */
-
+            // MENU
             if (
                 isObjectOrChild(
                     hit,
@@ -677,8 +622,7 @@ renderer.domElement.addEventListener(
                 return;
             }
 
-            /* PORTFOLIO */
-
+            // PORTFOLIO
             if (
                 isObjectOrChild(
                     hit,
@@ -697,9 +641,9 @@ renderer.domElement.addEventListener(
     }
 );
 
-/* =========================
-   FOCUS OBJECT
-========================= */
+// =========================
+// FOCUS OBJECT
+// =========================
 
 function focusOnObject(
     object,
@@ -709,7 +653,7 @@ function focusOnObject(
     if (!object) {
 
         console.warn(
-            "ไม่พบ Target สำหรับกล้อง"
+            "ไม่พบ Target"
         );
 
         return;
@@ -773,9 +717,9 @@ function focusOnObject(
     );
 }
 
-/* =========================
-   CAMERA FLY
-========================= */
+// =========================
+// CAMERA FLY
+// =========================
 
 function flyCameraTo(
     targetPosition,
@@ -812,9 +756,7 @@ function flyCameraTo(
 
         const ease =
             progress < 0.5
-                ? 2 *
-                  progress *
-                  progress
+                ? 2 * progress * progress
                 : 1 -
                   Math.pow(
                       -2 * progress + 2,
@@ -871,9 +813,9 @@ function flyCameraTo(
         );
 }
 
-/* =========================
-   MENU
-========================= */
+// =========================
+// MENU
+// =========================
 
 function showMenu() {
 
@@ -897,9 +839,9 @@ function showMenu() {
     ).style.display = "block";
 }
 
-/* =========================
-   ABOUT ME
-========================= */
+// =========================
+// ABOUT ME
+// =========================
 
 function showAboutMe() {
 
@@ -923,9 +865,9 @@ function showAboutMe() {
     ).style.display = "none";
 }
 
-/* =========================
-   MENU CAKE
-========================= */
+// =========================
+// MENU CAKE
+// =========================
 
 function showCake() {
 
@@ -945,9 +887,9 @@ function showCake() {
     ).style.display = "block";
 }
 
-/* =========================
-   MENU DONUT
-========================= */
+// =========================
+// MENU DONUT
+// =========================
 
 function showDonut() {
 
@@ -967,9 +909,9 @@ function showDonut() {
     ).style.display = "none";
 }
 
-/* =========================
-   GO BACK
-========================= */
+// =========================
+// BACK
+// =========================
 
 function goBack() {
 
@@ -994,9 +936,9 @@ function goBack() {
     ).style.display = "none";
 }
 
-/* =========================
-   HTML BACK
-========================= */
+// =========================
+// BUTTON EVENTS
+// =========================
 
 document.getElementById(
     "backButton"
@@ -1007,10 +949,6 @@ document.getElementById(
     }
 );
 
-/* =========================
-   HTML CAKE
-========================= */
-
 document.getElementById(
     "cakeButton"
 ).addEventListener(
@@ -1019,10 +957,6 @@ document.getElementById(
         showCake();
     }
 );
-
-/* =========================
-   HTML DONUT
-========================= */
 
 document.getElementById(
     "donutButton"
@@ -1033,9 +967,9 @@ document.getElementById(
     }
 );
 
-/* =========================
-   ANIMATION
-========================= */
+// =========================
+// ANIMATION
+// =========================
 
 function animate() {
 
@@ -1057,9 +991,9 @@ function animate() {
 
 animate();
 
-/* =========================
-   RESIZE
-========================= */
+// =========================
+// RESIZE
+// =========================
 
 window.addEventListener(
     "resize",
@@ -1084,6 +1018,7 @@ window.addEventListener(
         );
     }
 );
+
 </script>
 
 </body>

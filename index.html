@@ -115,8 +115,13 @@ controls.enableRotate = true;
 controls.enableZoom = true;
 controls.enablePan = true;
 
+// คลิกซ้าย = หมุน
 controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
+
+// คลิกขวา = เลื่อน
 controls.mouseButtons.RIGHT = THREE.MOUSE.PAN;
+
+// คลิกกลาง = ปิด
 controls.mouseButtons.MIDDLE = null;
 
 // Light
@@ -148,25 +153,23 @@ directionalLight.shadow.camera.far = 50;
 
 scene.add(directionalLight);
 
-// Bakery Orange Point Light
-const bakeryLight = new THREE.PointLight(
-    0xffa15c,
-    2.0,
-    18,
+// PointLight สีส้มปนเหลือง
+const bakeryPointLight = new THREE.PointLight(
+    0xffb35c,
+    1.8,
+    20,
     2
 );
 
-bakeryLight.castShadow = true;
+bakeryPointLight.castShadow = true;
 
-bakeryLight.shadow.mapSize.width = 1024;
-bakeryLight.shadow.mapSize.height = 1024;
+bakeryPointLight.shadow.mapSize.width = 1024;
+bakeryPointLight.shadow.mapSize.height = 1024;
 
-bakeryLight.shadow.camera.near = 0.1;
-bakeryLight.shadow.camera.far = 30;
+bakeryPointLight.shadow.camera.near = 0.1;
+bakeryPointLight.shadow.camera.far = 30;
 
-bakeryLight.shadow.bias = -0.0005;
-
-scene.add(bakeryLight);
+scene.add(bakeryPointLight);
 
 // Objects
 let modelRoot = null;
@@ -180,9 +183,13 @@ let menuCakeTarget = null;
 let menuDonutTarget = null;
 
 // Feature Objects
-let goldenTray = null;
-let cakeMascot = null;
-let bakeryFlag = null;
+let goldenCup = null;
+
+let cakeToonObjects = [];
+
+let clothObjects = [];
+
+let clothShaders = [];
 
 // Camera
 let defaultCamPos = new THREE.Vector3();
@@ -191,9 +198,6 @@ let defaultCamTarget = new THREE.Vector3();
 let currentPage = null;
 let flyAnimation = null;
 
-// Shader
-const flagShaders = [];
-
 // Clock
 const clock = new THREE.Clock();
 
@@ -201,53 +205,51 @@ const clock = new THREE.Clock();
 const loader = new THREE.GLTFLoader();
 
 /* =========================
-   OBJECT NAME SEARCH
+   GRADIENT RAMP
 ========================= */
 
-function findObjectByNames(root, names) {
+function createGradientRamp() {
 
-    let exactObject = null;
-    let fuzzyObject = null;
+    const colors = new Uint8Array([
+        60, 60, 60, 255,
+        110, 110, 110, 255,
+        180, 180, 180, 255,
+        255, 255, 255, 255
+    ]);
 
-    root.traverse(function(node) {
+    const gradientMap = new THREE.DataTexture(
+        colors,
+        4,
+        1,
+        THREE.RGBAFormat
+    );
 
-        if (!node.name) {
-            return;
-        }
+    gradientMap.minFilter =
+        THREE.NearestFilter;
 
-        const nodeName =
-            node.name.toLowerCase();
+    gradientMap.magFilter =
+        THREE.NearestFilter;
 
-        for (let i = 0; i < names.length; i++) {
+    gradientMap.generateMipmaps = false;
 
-            const searchName =
-                names[i].toLowerCase();
+    gradientMap.needsUpdate = true;
 
-            if (nodeName === searchName) {
-                exactObject = node;
-                return;
-            }
-
-            if (
-                !fuzzyObject &&
-                nodeName.includes(searchName)
-            ) {
-                fuzzyObject = node;
-            }
-        }
-    });
-
-    return exactObject || fuzzyObject || null;
+    return gradientMap;
 }
 
+const toonGradient =
+    createGradientRamp();
+
 /* =========================
-   GOLDEN PBR TRAY
+   GOLD CUP / CYLINDER
 ========================= */
 
-function applyGoldenTray(object) {
+function applyGoldenCup(object) {
 
     if (!object) {
-        console.warn("ไม่พบถาดโชว์สำหรับ PBR");
+        console.warn(
+            "ไม่พบ Cylinder"
+        );
         return;
     }
 
@@ -257,24 +259,23 @@ function applyGoldenTray(object) {
             return;
         }
 
-        const oldMaterial = node.material;
+        const oldMaterial =
+            node.material;
 
-        const normalMap =
+        const oldMap =
             oldMaterial &&
-            oldMaterial.normalMap
-                ? oldMaterial.normalMap
+            oldMaterial.map
+                ? oldMaterial.map
                 : null;
 
         node.material =
             new THREE.MeshPhysicalMaterial({
-                color: 0xd99b25,
+                color: 0xd9a441,
+                map: oldMap,
                 metalness: 0.88,
-                roughness: 0.22,
-                clearcoat: 0.65,
-                clearcoatRoughness: 0.12,
-                normalMap: normalMap,
-                emissive: 0x3a1800,
-                emissiveIntensity: 0.12
+                roughness: 0.2,
+                clearcoat: 0.7,
+                clearcoatRoughness: 0.12
             });
 
         node.castShadow = true;
@@ -282,51 +283,18 @@ function applyGoldenTray(object) {
     });
 
     console.log(
-        "Golden PBR Tray:",
+        "Golden Cylinder:",
         object
     );
 }
 
 /* =========================
-   TOON GRADIENT RAMP
-========================= */
-
-function createGradientRamp() {
-
-    const data = new Uint8Array([
-        70, 70, 70, 255,
-        130, 130, 130, 255,
-        200, 200, 200, 255,
-        255, 255, 255, 255
-    ]);
-
-    const texture =
-        new THREE.DataTexture(
-            data,
-            4,
-            1,
-            THREE.RGBAFormat
-        );
-
-    texture.minFilter = THREE.NearestFilter;
-    texture.magFilter = THREE.NearestFilter;
-    texture.generateMipmaps = false;
-    texture.needsUpdate = true;
-
-    return texture;
-}
-
-const toonGradient =
-    createGradientRamp();
-
-/* =========================
-   CAKE TOON MATERIAL
+   CAKE TOON
 ========================= */
 
 function applyCakeToon(object) {
 
     if (!object) {
-        console.warn("ไม่พบ Mascot Cake สำหรับ Toon");
         return;
     }
 
@@ -336,11 +304,21 @@ function applyCakeToon(object) {
             return;
         }
 
+        let oldColor =
+            0xffc7a8;
+
+        if (
+            node.material &&
+            node.material.color
+        ) {
+            oldColor =
+                node.material.color.getHex();
+        }
+
         node.material =
             new THREE.MeshToonMaterial({
-                color: 0xffc7a8,
-                gradientMap: toonGradient,
-                flatShading: true
+                color: oldColor,
+                gradientMap: toonGradient
             });
 
         node.material.needsUpdate = true;
@@ -350,19 +328,18 @@ function applyCakeToon(object) {
     });
 
     console.log(
-        "Cake Toon Mascot:",
+        "Cake Toon:",
         object
     );
 }
 
 /* =========================
-   FLAG VERTEX SHADER
+   CLOTH SHADER
 ========================= */
 
-function applyFlagShader(object) {
+function applyClothShader(object) {
 
     if (!object) {
-        console.warn("ไม่พบ Flag / Banner");
         return;
     }
 
@@ -372,85 +349,83 @@ function applyFlagShader(object) {
             return;
         }
 
-        const materials =
-            Array.isArray(node.material)
-                ? node.material
-                : [node.material];
+        const material =
+            node.material;
 
-        materials.forEach(function(material) {
+        if (!material) {
+            return;
+        }
 
-            if (!material) {
-                return;
-            }
+        const originalOnBeforeCompile =
+            material.onBeforeCompile;
 
-            const oldOnBeforeCompile =
-                material.onBeforeCompile;
+        material.onBeforeCompile =
+            function(shader, renderer) {
 
-            material.onBeforeCompile =
-                function(shader, renderer) {
-
-                    if (oldOnBeforeCompile) {
-                        oldOnBeforeCompile(
-                            shader,
-                            renderer
-                        );
-                    }
-
-                    shader.uniforms.uTime = {
-                        value: 0
-                    };
-
-                    shader.vertexShader =
-                        shader.vertexShader.replace(
-                            "#include <begin_vertex>",
-
-                            `
-                            #include <begin_vertex>
-
-                            float wave1 =
-                                sin(
-                                    transformed.x * 5.0 +
-                                    uTime * 2.4
-                                ) * 0.08;
-
-                            float wave2 =
-                                sin(
-                                    transformed.x * 11.0 +
-                                    uTime * 4.0
-                                ) * 0.025;
-
-                            float waveAmount =
-                                abs(transformed.x) * 0.8 + 0.25;
-
-                            transformed.z +=
-                                (wave1 + wave2) *
-                                waveAmount;
-
-                            transformed.y +=
-                                sin(
-                                    transformed.x * 3.0 +
-                                    uTime * 2.0
-                                ) * 0.015;
-                            `
-                        );
-
-                    material.userData.flagShader =
-                        shader;
-
-                    flagShaders.push(
-                        material
+                if (originalOnBeforeCompile) {
+                    originalOnBeforeCompile(
+                        shader,
+                        renderer
                     );
+                }
+
+                shader.uniforms.uTime = {
+                    value: 0
                 };
 
-            material.needsUpdate = true;
-        });
+                shader.vertexShader =
+                    shader.vertexShader.replace(
+                        "#include <begin_vertex>",
+
+                        `
+                        #include <begin_vertex>
+
+                        float wave1 =
+                            sin(
+                                transformed.x * 5.0 +
+                                uTime * 2.5
+                            ) * 0.06;
+
+                        float wave2 =
+                            sin(
+                                transformed.x * 10.0 +
+                                uTime * 4.0
+                            ) * 0.02;
+
+                        float wave3 =
+                            sin(
+                                transformed.y * 4.0 +
+                                uTime * 2.0
+                            ) * 0.015;
+
+                        float waveAmount =
+                            abs(transformed.x) * 0.8 + 0.2;
+
+                        transformed.z +=
+                            (wave1 + wave2) *
+                            waveAmount;
+
+                        transformed.y +=
+                            wave3;
+                        `
+                    );
+
+                material.userData.clothShader =
+                    shader;
+
+                clothShaders.push(
+                    material
+                );
+            };
+
+        material.needsUpdate = true;
 
         node.castShadow = true;
         node.receiveShadow = true;
     });
 
     console.log(
-        "Realtime Flag Shader:",
+        "Cloth Shader:",
         object
     );
 }
@@ -465,31 +440,43 @@ loader.load(
     function(gltf) {
 
         const model = gltf.scene;
-
         modelRoot = model;
 
         model.traverse(function(node) {
 
             // Main Buttons
-            if (node.name === "BtnMenu") {
+            if (
+                node.name ===
+                "BtnMenu"
+            ) {
                 btnMenu = node;
             }
 
-            if (node.name === "BtnPortfolio") {
+            if (
+                node.name ===
+                "BtnPortfolio"
+            ) {
                 btnPortfolio = node;
             }
 
             // Camera Targets
-            if (node.name === "MenuCake") {
+            if (
+                node.name ===
+                "MenuCake"
+            ) {
                 menuCakeTarget = node;
             }
 
-            if (node.name === "MenuDonut") {
+            if (
+                node.name ===
+                "MenuDonut"
+            ) {
                 menuDonutTarget = node;
             }
 
             // Shadow
             if (node.isMesh) {
+
                 node.castShadow = true;
                 node.receiveShadow = true;
             }
@@ -506,46 +493,37 @@ loader.load(
                 "AboutMe"
             );
 
-        // Feature Objects
-        goldenTray =
-            findObjectByNames(
-                model,
-                [
-                    "Tray",
-                    "ShowcaseTray",
-                    "GoldenTray",
-                    "ถาดโชว์",
-                    "ถาด"
-                ]
+        // Cylinder
+        goldenCup =
+            model.getObjectByName(
+                "Cylinder"
             );
 
-        cakeMascot =
-            findObjectByNames(
-                model,
-                [
-                    "CakeMascot",
-                    "MascotCake",
-                    "Cake_Mascot",
-                    "Mascot",
-                    "Mascot.001",
-                    "เค้กมาสคอต",
-                    "มาสคอต"
-                ]
-            );
+        // Cake Toon
+        cakeToonObjects = [
+            model.getObjectByName(
+                "Cylinder.021"
+            ),
+            model.getObjectByName(
+                "Cylinder.022"
+            ),
+            model.getObjectByName(
+                "Cylinder.023"
+            )
+        ].filter(Boolean);
 
-        bakeryFlag =
-            findObjectByNames(
-                model,
-                [
-                    "Flag",
-                    "BakeryFlag",
-                    "Banner",
-                    "BakeryBanner",
-                    "SignFlag",
-                    "ธง",
-                    "ป้าย"
-                ]
-            );
+        // Cloth
+        clothObjects = [
+            model.getObjectByName(
+                "Plane.001"
+            ),
+            model.getObjectByName(
+                "Plane.002"
+            ),
+            model.getObjectByName(
+                "Plane0.003"
+            )
+        ].filter(Boolean);
 
         console.log(
             "BtnAboutme.001:",
@@ -578,18 +556,38 @@ loader.load(
         );
 
         console.log(
-            "Golden Tray:",
-            goldenTray
+            "Cylinder:",
+            goldenCup
         );
 
         console.log(
-            "Cake Mascot:",
-            cakeMascot
+            "Cylinder.021:",
+            cakeToonObjects[0]
         );
 
         console.log(
-            "Bakery Flag:",
-            bakeryFlag
+            "Cylinder.022:",
+            cakeToonObjects[1]
+        );
+
+        console.log(
+            "Cylinder.023:",
+            cakeToonObjects[2]
+        );
+
+        console.log(
+            "Plane.001:",
+            clothObjects[0]
+        );
+
+        console.log(
+            "Plane.002:",
+            clothObjects[1]
+        );
+
+        console.log(
+            "Plane0.003:",
+            clothObjects[2]
         );
 
         scene.add(model);
@@ -609,11 +607,11 @@ loader.load(
                 new THREE.Vector3()
             );
 
-        // Bakery Light Position
-        bakeryLight.position.set(
+        // Point Light Position
+        bakeryPointLight.position.set(
             center.x,
             center.y + size.y * 0.35,
-            center.z
+            center.z + size.z * 0.2
         );
 
         // Initial Camera
@@ -643,20 +641,36 @@ loader.load(
             controls.target
         );
 
-        // Apply Features
-        applyGoldenTray(
-            goldenTray
+        // Apply Golden Material
+        applyGoldenCup(
+            goldenCup
         );
 
-        applyCakeToon(
-            cakeMascot
-        );
+        // Apply Toon
+        for (
+            let i = 0;
+            i < cakeToonObjects.length;
+            i++
+        ) {
+            applyCakeToon(
+                cakeToonObjects[i]
+            );
+        }
 
-        applyFlagShader(
-            bakeryFlag
-        );
+        // Apply Cloth Shader
+        for (
+            let i = 0;
+            i < clothObjects.length;
+            i++
+        ) {
+            applyClothShader(
+                clothObjects[i]
+            );
+        }
 
-        console.log("Bekery loaded");
+        console.log(
+            "Bekery loaded"
+        );
     },
 
     undefined,
@@ -693,11 +707,14 @@ function isObjectOrChild(
 
     while (current) {
 
-        if (current === target) {
+        if (
+            current === target
+        ) {
             return true;
         }
 
-        current = current.parent;
+        current =
+            current.parent;
     }
 
     return false;
@@ -720,13 +737,11 @@ renderer.domElement.addEventListener(
 
         mouse.x =
             (event.clientX /
-            window.innerWidth) *
-            2 - 1;
+            window.innerWidth) * 2 - 1;
 
         mouse.y =
             -(event.clientY /
-            window.innerHeight) *
-            2 + 1;
+            window.innerHeight) * 2 + 1;
 
         raycaster.setFromCamera(
             mouse,
@@ -940,7 +955,9 @@ function flyCameraTo(
             controls.target
         );
 
-        if (progress < 1) {
+        if (
+            progress < 1
+        ) {
 
             flyAnimation =
                 requestAnimationFrame(
@@ -1135,33 +1152,37 @@ document.getElementById(
 );
 
 /* =========================
-   ANIMATION
+   UPDATE CLOTH SHADER
 ========================= */
 
-function updateFlagShader(time) {
+function updateClothShaders(time) {
 
     for (
         let i = 0;
-        i < flagShaders.length;
+        i < clothShaders.length;
         i++
     ) {
 
         const material =
-            flagShaders[i];
+            clothShaders[i];
 
         if (
             material.userData &&
-            material.userData.flagShader
+            material.userData.clothShader
         ) {
 
             material.userData
-                .flagShader
+                .clothShader
                 .uniforms
                 .uTime
                 .value = time;
         }
     }
 }
+
+/* =========================
+   ANIMATION
+========================= */
 
 function animate() {
 
@@ -1172,9 +1193,14 @@ function animate() {
     const time =
         clock.getElapsedTime();
 
-    updateFlagShader(time);
+    updateClothShaders(
+        time
+    );
 
-    if (controls.enabled) {
+    if (
+        controls.enabled
+    ) {
+
         controls.update();
     }
 

@@ -1,22 +1,13 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
-
   <meta charset="utf-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>Bakery 3D</title>
 
-
   <style>
-
-    html,
-    body {
+    html, body {
       width: 100%;
       height: 100%;
       margin: 0;
@@ -27,392 +18,258 @@
       display: block;
     }
 
-
-    /* =========================
-       HTML NAVIGATION BUTTONS
-    ========================= */
-
-    #backButton,
-    #donutButton,
-    #cakeButton {
-
+    /* BACK */
+    #backButton {
       position: fixed;
-
-      z-index: 100;
-
-      display: none;
-
-      border: none;
-
-      border-radius: 12px;
+      top: 20px;
+      left: 20px;
+      z-index: 10;
 
       padding: 12px 20px;
+      border: none;
+      border-radius: 12px;
 
       background: white;
-
-      color: #5a4035;
+      color: #5b3a29;
 
       font-size: 16px;
-
-      font-family: Arial, sans-serif;
+      font-weight: bold;
 
       cursor: pointer;
-
-      box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.15);
-
-      transition: 0.2s;
-
+      display: none;
     }
 
-
-    #backButton {
-      top: 25px;
-      left: 25px;
-    }
-
-
+    /* DONUT */
     #donutButton {
-      right: 30px;
-      bottom: 30px;
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 10;
+
+      padding: 12px 20px;
+      border: none;
+      border-radius: 12px;
+
+      background: white;
+      color: #5b3a29;
+
+      font-size: 16px;
+      font-weight: bold;
+
+      cursor: pointer;
+      display: none;
     }
 
-
+    /* CAKE */
     #cakeButton {
-      left: 30px;
-      bottom: 30px;
+      position: fixed;
+      left: 20px;
+      bottom: 20px;
+      z-index: 10;
+
+      padding: 12px 20px;
+      border: none;
+      border-radius: 12px;
+
+      background: white;
+      color: #5b3a29;
+
+      font-size: 16px;
+      font-weight: bold;
+
+      cursor: pointer;
+      display: none;
     }
 
-
-    #backButton:hover,
-    #donutButton:hover,
-    #cakeButton:hover {
-
-      background: #fff0f4;
-
+    button:hover {
       transform: scale(1.05);
-
     }
-
   </style>
 
-
   <!-- THREE.JS -->
-
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 
-
   <!-- ORBIT CONTROLS -->
-
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 
-
   <!-- GLTF LOADER -->
-
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-
 </head>
-
 
 <body>
 
+  <!-- BACK -->
+  <button id="backButton">← Back</button>
 
-  <!-- =========================
-       BACK
-  ========================= -->
+  <!-- DONUT -->
+  <button id="donutButton">🍩 Menu Donut</button>
 
-  <button id="backButton">
-    ← Back
-  </button>
-
-
-  <!-- =========================
-       DONUT
-  ========================= -->
-
-  <button id="donutButton">
-    🍩 Menu Donut
-  </button>
-
-
-  <!-- =========================
-       CAKE
-  ========================= -->
-
-  <button id="cakeButton">
-    🍰 Menu Cake
-  </button>
-
+  <!-- CAKE -->
+  <button id="cakeButton">🍰 Menu Cake</button>
 
 
 <script>
 
+  /* =========================================================
+     SCENE
+  ========================================================= */
 
-  // =====================================================
-  // SCENE
-  // =====================================================
+  const scene = new THREE.Scene();
 
-  const scene =
-    new THREE.Scene();
-
-
-  scene.background =
-    new THREE.Color(0xFFF4E3);
+  scene.background = new THREE.Color(0xFFF4E3);
 
 
+  /* =========================================================
+     CAMERA
+  ========================================================= */
 
-  // =====================================================
-  // CAMERA
-  // =====================================================
-
-  const camera =
-    new THREE.PerspectiveCamera(
-
-      50,
-
-      innerWidth / innerHeight,
-
-      0.1,
-
-      100
-
-    );
+  const camera = new THREE.PerspectiveCamera(
+    50,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    100
+  );
 
 
+  /* =========================================================
+     RENDERER
+  ========================================================= */
 
-  // =====================================================
-  // RENDERER
-  // =====================================================
-
-  const renderer =
-    new THREE.WebGLRenderer({
-
-      antialias: true
-
-    });
-
+  const renderer = new THREE.WebGLRenderer({
+    antialias: true
+  });
 
   renderer.setSize(
-
-    innerWidth,
-
-    innerHeight
-
+    window.innerWidth,
+    window.innerHeight
   );
-
 
   renderer.setPixelRatio(
-
-    Math.min(
-
-      devicePixelRatio,
-
-      2
-
-    )
-
+    Math.min(window.devicePixelRatio, 2)
   );
 
+  renderer.outputEncoding = THREE.sRGBEncoding;
 
-  renderer.outputEncoding =
-    THREE.sRGBEncoding;
+  document.body.appendChild(renderer.domElement);
 
 
-  document.body.appendChild(
+  /* =========================================================
+     CONTROLS
+  ========================================================= */
 
+  const controls = new THREE.OrbitControls(
+    camera,
     renderer.domElement
-
   );
 
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+
+  controls.minDistance = 5;
+  controls.maxDistance = 30;
 
 
-  // =====================================================
-  // ORBIT CONTROLS
-  // =====================================================
+  /* =========================================================
+     LIGHT
+  ========================================================= */
 
-  const controls =
-    new THREE.OrbitControls(
-
-      camera,
-
-      renderer.domElement
-
-    );
-
-
-  controls.enableDamping =
-    true;
-
-
-  controls.dampingFactor =
-    0.05;
-
-
-  controls.minDistance =
-    3;
-
-
-  controls.maxDistance =
-    30;
-
-
-
-  // =====================================================
-  // LIGHT
-  // =====================================================
-
-  const ambientLight =
-    new THREE.AmbientLight(
-
-      0xffffff,
-
-      0.55
-
-    );
-
-
-  scene.add(
-
-    ambientLight
-
+  const ambientLight = new THREE.AmbientLight(
+    0xffffff,
+    0.55
   );
 
-
-  const light =
-    new THREE.DirectionalLight(
-
-      0xffffff,
-
-      0.35
-
-    );
+  scene.add(ambientLight);
 
 
-  light.position.set(
-
-    5,
-
-    3,
-
-    10
-
+  const light = new THREE.DirectionalLight(
+    0xffffff,
+    0.35
   );
 
+  light.position.set(5, 3, 10);
 
-  scene.add(
-
-    light
-
-  );
+  scene.add(light);
 
 
+  /* =========================================================
+     GLTF LOADER
+  ========================================================= */
 
-  // =====================================================
-  // OBJECT VARIABLES
-  // =====================================================
+  const loader = new THREE.GLTFLoader();
 
   let bakery = null;
 
   let aboutMe = null;
-
   let menuCake = null;
-
   let menuDonut = null;
 
-
-  // =====================================================
-  // HOME CAMERA
-  // =====================================================
-
   let homeCameraPosition = null;
-
   let homeTarget = null;
 
-  let homeCameraUp = null;
 
-
-
-  // =====================================================
-  // PORTFOLIO LINK
-  // =====================================================
-
-  const PORTFOLIO_URL =
-    'https://example.com';
-
-
-
-  // =====================================================
-  // GLTF LOADER
-  // =====================================================
-
-  const loader =
-    new THREE.GLTFLoader();
-
+  /* =========================================================
+     LOAD BAKERY
+     
+     สำคัญ:
+     ไฟล์ต้องชื่อ Bekery.glb
+  ========================================================= */
 
   loader.load(
 
-    './Bekery(1).glb',
+    './Bekery.glb',
+
+    function(gltf) {
+
+      console.log('Bekery.glb โหลดสำเร็จ');
+
+      bakery = gltf.scene;
+
+      scene.add(bakery);
 
 
-    // ===================================================
-    // LOAD SUCCESS
-    // ===================================================
+      /* -----------------------------------------
+         หา Object ตามชื่อ
+      ----------------------------------------- */
 
-    function (gltf) {
+      aboutMe = bakery.getObjectByName('AboutMe');
 
+      menuCake = bakery.getObjectByName('MenuCake');
 
-      bakery =
-        gltf.scene;
-
-
-      scene.add(
-
-        bakery
-
-      );
+      menuDonut = bakery.getObjectByName('MenuDonut');
 
 
-      // ===============================================
-      // MODEL SIZE
-      // ===============================================
+      /* -----------------------------------------
+         เช็กชื่อ Object
+      ----------------------------------------- */
 
-      const box =
-        new THREE.Box3()
-          .setFromObject(
+      console.log('AboutMe:', aboutMe);
 
-            bakery
+      console.log('MenuCake:', menuCake);
 
-          );
+      console.log('MenuDonut:', menuDonut);
 
 
-      const center =
-        new THREE.Vector3();
+      /* -----------------------------------------
+         คำนวณขนาด Bakery
+      ----------------------------------------- */
+
+      const box = new THREE.Box3()
+        .setFromObject(bakery);
+
+      const center = new THREE.Vector3();
+
+      box.getCenter(center);
+
+      const size = new THREE.Vector3();
+
+      box.getSize(size);
 
 
-      box.getCenter(
+      /* -----------------------------------------
+         HOME CAMERA
 
-        center
-
-      );
-
-
-      const size =
-        new THREE.Vector3();
-
-
-      box.getSize(
-
-        size
-
-      );
-
-
-
-      // ===============================================
-      // HOME CAMERA
-      //
-      // หน้าร้าน = +X
-      // ===============================================
+         ตรงนี้ใช้แบบเดิมที่เคยทำงาน
+      ----------------------------------------- */
 
       camera.position.set(
 
@@ -428,151 +285,84 @@
       controls.target.set(
 
         center.x,
-
         center.y,
-
         center.z
 
       );
 
 
       camera.lookAt(
-
         controls.target
-
       );
-
 
       controls.update();
 
 
-
-      // ===============================================
-      // SAVE HOME CAMERA
-      // ===============================================
+      /* -----------------------------------------
+         จำตำแหน่ง Home
+      ----------------------------------------- */
 
       homeCameraPosition =
         camera.position.clone();
-
 
       homeTarget =
         controls.target.clone();
 
 
-      homeCameraUp =
-        camera.up.clone();
+      console.log('Bakery loaded');
+
+      console.log('Size:', size);
+
+      console.log('Center:', center);
 
 
+      /* -----------------------------------------
+         ตรวจปุ่ม 3D
+      ----------------------------------------- */
 
-      // ===============================================
-      // GET OBJECTS
-      //
-      // ชื่อตรงกับ GLB ล่าสุด
-      // ===============================================
+      const btnAboutMe =
+        bakery.getObjectByName('BtnAboutMe');
 
-      aboutMe =
-        bakery.getObjectByName(
+      const btnMenu =
+        bakery.getObjectByName('BtnMenu');
 
-          'Aboutme'
-
-        );
-
-
-      menuCake =
-        bakery.getObjectByName(
-
-          'MenuCake'
-
-        );
-
-
-      menuDonut =
-        bakery.getObjectByName(
-
-          'MenuDonut'
-
-        );
-
-
-
-      // ===============================================
-      // DEBUG
-      // ===============================================
-
-      console.log(
-        '========== BAKERY OBJECTS =========='
-      );
+      const btnPortfolio =
+        bakery.getObjectByName('BtnPortfolio');
 
 
       console.log(
-        'BtnAboutme.001:',
-        bakery.getObjectByName(
-          'BtnAboutme.001'
-        )
+        'BtnAboutMe:',
+        btnAboutMe
       );
-
 
       console.log(
         'BtnMenu:',
-        bakery.getObjectByName(
-          'BtnMenu'
-        )
+        btnMenu
       );
-
 
       console.log(
         'BtnPortfolio:',
-        bakery.getObjectByName(
-          'BtnPortfolio'
-        )
+        btnPortfolio
       );
-
-
-      console.log(
-        'Aboutme:',
-        aboutMe
-      );
-
-
-      console.log(
-        'MenuCake:',
-        menuCake
-      );
-
-
-      console.log(
-        'MenuDonut:',
-        menuDonut
-      );
-
-
-      console.log(
-        '===================================='
-      );
-
 
     },
 
 
-    // ===================================================
-    // LOADING
-    // ===================================================
+    /* -----------------------------------------
+       Loading Progress
+    ----------------------------------------- */
 
-    function (xhr) {
-
+    function(xhr) {
 
       if (xhr.total > 0) {
 
         console.log(
 
           'Loading:',
-
           (
-
             xhr.loaded /
             xhr.total *
             100
-
           ).toFixed(0) + '%'
 
         );
@@ -582,18 +372,15 @@
     },
 
 
-    // ===================================================
-    // ERROR
-    // ===================================================
+    /* -----------------------------------------
+       ERROR
+    ----------------------------------------- */
 
-    function (error) {
+    function(error) {
 
       console.error(
-
-        '❌ โหลด Bekery(1).glb ไม่สำเร็จ',
-
+        'โหลด Bekery.glb ไม่สำเร็จ',
         error
-
       );
 
     }
@@ -601,26 +388,16 @@
   );
 
 
+  /* =========================================================
+     CAMERA FUNCTION
+  ========================================================= */
 
-  // =====================================================
-  // GENERIC CAMERA MOVE
-  // =====================================================
-
-  function moveCameraToObject(
-
-    object,
-
-    direction,
-
-    distanceMultiplier = 2.5
-
-  ) {
-
+  function moveCameraToObject(object) {
 
     if (!object) {
 
-      console.error(
-        '❌ ไม่พบ Object ที่ต้องการ'
+      console.warn(
+        'ไม่พบ Object สำหรับกล้อง'
       );
 
       return;
@@ -628,342 +405,35 @@
     }
 
 
-
-    // ===============================================
-    // OBJECT BOUNDING BOX
-    // ===============================================
-
-    const box =
-      new THREE.Box3()
-        .setFromObject(
-
-          object
-
-        );
+    const box = new THREE.Box3()
+      .setFromObject(object);
 
 
-    const center =
-      new THREE.Vector3();
+    const center = new THREE.Vector3();
+
+    box.getCenter(center);
 
 
-    box.getCenter(
+    const size = new THREE.Vector3();
 
-      center
+    box.getSize(size);
 
-    );
-
-
-    const size =
-      new THREE.Vector3();
-
-
-    box.getSize(
-
-      size
-
-    );
-
-
-
-    // ===============================================
-    // CAMERA DISTANCE
-    // ===============================================
 
     const maxSize =
       Math.max(
-
         size.x,
-
         size.y,
-
-        size.z,
-
-        1
-
+        size.z
       );
 
 
     const distance =
-      maxSize *
-      distanceMultiplier;
+      maxSize * 3;
 
-
-
-    // ===============================================
-    // CAMERA DIRECTION
-    // ===============================================
-
-    const dir =
-      direction
-        .clone()
-        .normalize();
-
-
-
-    // ===============================================
-    // MOVE CAMERA
-    // ===============================================
-
-    camera.position.copy(
-
-      center.clone().add(
-
-        dir.multiplyScalar(
-
-          distance
-
-        )
-
-      )
-
-    );
-
-
-    // ===============================================
-    // LOOK AT OBJECT
-    // ===============================================
-
-    controls.target.copy(
-
-      center
-
-    );
-
-
-    camera.lookAt(
-
-      center
-
-    );
-
-
-    controls.update();
-
-  }
-
-
-
-  // =====================================================
-  // ABOUT ME
-  //
-  // GLB ล่าสุดใช้ชื่อ Aboutme
-  //
-  // อยู่ด้านหน้าร้าน
-  // +X
-  // =====================================================
-
-  function goToAboutMe() {
-
-
-    moveCameraToObject(
-
-      aboutMe,
-
-      new THREE.Vector3(
-
-        1,
-
-        0,
-
-        0
-
-      ),
-
-      2.5
-
-    );
-
-  }
-
-
-
-  // =====================================================
-  // MENU CAKE
-  //
-  // ⚠️ ไม่เปลี่ยนจากแบบที่ทำงานอยู่
-  //
-  // +X
-  // =====================================================
-
-  function goToMenuCake() {
-
-
-    moveCameraToObject(
-
-      menuCake,
-
-      new THREE.Vector3(
-
-        1,
-
-        0,
-
-        0
-
-      ),
-
-      2.5
-
-    );
-
-  }
-
-
-
-  // =====================================================
-  // MENU DONUT
-  //
-  // GLB ล่าสุด
-  // หน้า MenuDonut หันทาง -X
-  //
-  // ดังนั้นกล้องอยู่ทาง -X
-  // =====================================================
-
-  function goToMenuDonut() {
-
-
-    if (!menuDonut) {
-
-      console.error(
-        '❌ ไม่พบ MenuDonut'
-      );
-
-      return;
-
-    }
-
-
-    // ===============================================
-    // Bounding Box
-    // ===============================================
-
-    const box =
-      new THREE.Box3()
-        .setFromObject(
-
-          menuDonut
-
-        );
-
-
-    const center =
-      new THREE.Vector3();
-
-
-    box.getCenter(
-
-      center
-
-    );
-
-
-    const size =
-      new THREE.Vector3();
-
-
-    box.getSize(
-
-      size
-
-    );
-
-
-
-    // ===============================================
-    // MenuDonut เป็นแผ่นบนระนาบ Y-Z
-    //
-    // ความกว้าง = Y
-    // ความสูง = Z
-    // ===============================================
-
-    const boardWidth =
-      Math.max(
-
-        size.y,
-
-        0.1
-
-      );
-
-
-    const boardHeight =
-      Math.max(
-
-        size.z,
-
-        0.1
-
-      );
-
-
-
-    // ===============================================
-    // คำนวณระยะให้เห็นทั้งแผ่น
-    // ===============================================
-
-    const fov =
-      THREE.MathUtils.degToRad(
-
-        camera.fov
-
-      );
-
-
-    const verticalDistance =
-
-      (
-
-        boardHeight / 2
-
-      ) /
-
-      Math.tan(
-
-        fov / 2
-
-      );
-
-
-    const horizontalDistance =
-
-      (
-
-        boardWidth / 2
-
-      ) /
-
-      (
-
-        Math.tan(
-
-          fov / 2
-
-        ) *
-
-        camera.aspect
-
-      );
-
-
-    const distance =
-
-      Math.max(
-
-        verticalDistance,
-
-        horizontalDistance
-
-      ) * 1.2;
-
-
-
-    // ===============================================
-    // ⭐ DONUT = -X
-    // ===============================================
 
     camera.position.set(
 
-      center.x - distance,
+      center.x + distance,
 
       center.y,
 
@@ -972,709 +442,448 @@
     );
 
 
-    // ===============================================
-    // ให้ Z เป็นด้านบน
-    // ===============================================
+    controls.target.copy(center);
 
-    camera.up.set(
-
-      0,
-
-      0,
-
-      1
-
-    );
-
-
-    controls.target.copy(
-
-      center
-
-    );
-
-
-    camera.lookAt(
-
-      center
-
-    );
-
+    camera.lookAt(center);
 
     controls.update();
-
-
-    console.log(
-      '🍩 Camera → MenuDonut (-X)'
-    );
 
   }
 
 
+  /* =========================================================
+     ABOUT ME
+  ========================================================= */
 
-  // =====================================================
-  // GO HOME
-  // =====================================================
+  function goToAboutMe() {
 
-  function goHome() {
+    if (!aboutMe) {
+
+      console.warn(
+        'ยังไม่พบ Object ชื่อ AboutMe'
+      );
+
+      return;
+
+    }
+
+    moveCameraToObject(
+      aboutMe
+    );
+
+    document.getElementById(
+      'backButton'
+    ).style.display = 'block';
+
+  }
 
 
-    if (
+  /* =========================================================
+     MENU CAKE
+     
+     ไม่เปลี่ยนแนวเดิม:
+     ใช้ MenuCake
+  ========================================================= */
 
-      !homeCameraPosition ||
+  function goToMenuCake() {
 
-      !homeTarget
+    if (!menuCake) {
 
-    ) {
+      console.warn(
+        'ยังไม่พบ Object ชื่อ MenuCake'
+      );
 
       return;
 
     }
 
 
-    camera.position.copy(
+    const box = new THREE.Box3()
+      .setFromObject(menuCake);
 
-      homeCameraPosition
+    const center = new THREE.Vector3();
+
+    box.getCenter(center);
+
+    const size = new THREE.Vector3();
+
+    box.getSize(size);
+
+
+    const distance =
+      Math.max(
+        size.x,
+        size.y,
+        size.z
+      ) * 3;
+
+
+    /* -----------------------------------------
+       MenuCake
+       ใช้มุมด้านหน้า +X
+       ----------------------------------------- */
+
+    camera.position.set(
+
+      center.x + distance,
+
+      center.y,
+
+      center.z
 
     );
 
 
-    controls.target.copy(
+    controls.target.copy(center);
 
-      homeTarget
-
-    );
-
-
-    camera.up.copy(
-
-      homeCameraUp
-
-    );
-
-
-    camera.lookAt(
-
-      homeTarget
-
-    );
-
+    camera.lookAt(center);
 
     controls.update();
 
 
-
-    // ===============================================
-    // HIDE HTML BUTTONS
-    // ===============================================
-
     document.getElementById(
       'backButton'
-    ).style.display =
-      'none';
-
+    ).style.display = 'block';
 
     document.getElementById(
       'donutButton'
-    ).style.display =
-      'none';
-
+    ).style.display = 'block';
 
     document.getElementById(
       'cakeButton'
-    ).style.display =
-      'none';
+    ).style.display = 'none';
 
   }
 
 
+  /* =========================================================
+     MENU DONUT
+  ========================================================= */
 
-  // =====================================================
-  // RAYCASTER
-  // =====================================================
+  function goToMenuDonut() {
+
+    if (!menuDonut) {
+
+      console.warn(
+        'ยังไม่พบ Object ชื่อ MenuDonut'
+      );
+
+      return;
+
+    }
+
+
+    const box = new THREE.Box3()
+      .setFromObject(menuDonut);
+
+    const center = new THREE.Vector3();
+
+    box.getCenter(center);
+
+    const size = new THREE.Vector3();
+
+    box.getSize(size);
+
+
+    const distance =
+      Math.max(
+        size.x,
+        size.y,
+        size.z
+      ) * 3;
+
+
+    /* -----------------------------------------
+       Donut อยู่ด้านข้าง
+       ----------------------------------------- */
+
+    camera.position.set(
+
+      center.x,
+
+      center.y - distance,
+
+      center.z
+
+    );
+
+
+    controls.target.copy(center);
+
+    camera.lookAt(center);
+
+    controls.update();
+
+
+    document.getElementById(
+      'backButton'
+    ).style.display = 'block';
+
+    document.getElementById(
+      'donutButton'
+    ).style.display = 'none';
+
+    document.getElementById(
+      'cakeButton'
+    ).style.display = 'block';
+
+  }
+
+
+  /* =========================================================
+     BACK HOME
+  ========================================================= */
+
+  document.getElementById(
+    'backButton'
+  ).addEventListener(
+    'click',
+    function() {
+
+      if (!homeCameraPosition) {
+        return;
+      }
+
+
+      camera.position.copy(
+        homeCameraPosition
+      );
+
+      controls.target.copy(
+        homeTarget
+      );
+
+      camera.lookAt(
+        controls.target
+      );
+
+      controls.update();
+
+
+      document.getElementById(
+        'backButton'
+      ).style.display = 'none';
+
+      document.getElementById(
+        'donutButton'
+      ).style.display = 'none';
+
+      document.getElementById(
+        'cakeButton'
+      ).style.display = 'none';
+
+    }
+  );
+
+
+  /* =========================================================
+     DONUT HTML BUTTON
+  ========================================================= */
+
+  document.getElementById(
+    'donutButton'
+  ).addEventListener(
+    'click',
+    function() {
+
+      goToMenuDonut();
+
+    }
+  );
+
+
+  /* =========================================================
+     CAKE HTML BUTTON
+  ========================================================= */
+
+  document.getElementById(
+    'cakeButton'
+  ).addEventListener(
+    'click',
+    function() {
+
+      goToMenuCake();
+
+    }
+  );
+
+
+  /* =========================================================
+     3D BUTTON CLICK
+  ========================================================= */
 
   const raycaster =
     new THREE.Raycaster();
-
 
   const mouse =
     new THREE.Vector2();
 
 
-
-  // =====================================================
-  // FIND 3D BUTTON
-  //
-  // GLB ล่าสุด:
-  //
-  // BtnAboutme.001
-  // BtnMenu
-  // BtnPortfolio
-  // =====================================================
-
-  function findButtonObject(object) {
-
-
-    let current =
-      object;
-
-
-    while (
-
-      current &&
-
-      current !== bakery
-
-    ) {
-
-
-      if (
-
-        current.name ===
-        'BtnAboutme.001' ||
-
-        current.name ===
-        'BtnMenu' ||
-
-        current.name ===
-        'BtnPortfolio'
-
-      ) {
-
-        return current;
-
-      }
-
-
-      current =
-        current.parent;
-
-    }
-
-
-    return null;
-
-  }
-
-
-
-  // =====================================================
-  // CLICK 3D BUTTON
-  // =====================================================
-
   renderer.domElement.addEventListener(
-
     'click',
-
-    function (event) {
-
-
-      if (!bakery) {
-
-        return;
-
-      }
-
-
-
-      // ===============================================
-      // MOUSE POSITION
-      // ===============================================
+    function(event) {
 
       mouse.x =
-
-        (
-
-          event.clientX /
-          window.innerWidth
-
-        ) * 2 - 1;
-
+        (event.clientX /
+        window.innerWidth) * 2 - 1;
 
       mouse.y =
+        -(event.clientY /
+        window.innerHeight) * 2 + 1;
 
-        -(
-
-          event.clientY /
-          window.innerHeight
-
-        ) * 2 + 1;
-
-
-
-      // ===============================================
-      // RAYCAST
-      // ===============================================
 
       raycaster.setFromCamera(
-
         mouse,
-
         camera
-
       );
 
 
-      const hits =
-        raycaster.intersectObject(
-
-          bakery,
-
-          true
-
-        );
-
-
-      if (
-
-        hits.length === 0
-
-      ) {
-
+      if (!bakery) {
         return;
-
       }
 
 
-
-      // ===============================================
-      // FIND BUTTON
-      // ===============================================
-
-      let clickedButton =
-        null;
+      const objects = [];
 
 
-      for (
+      bakery.traverse(
+        function(child) {
 
-        let i = 0;
+          if (child.isMesh) {
 
-        i < hits.length;
+            objects.push(child);
 
-        i++
-
-      ) {
-
-
-        const candidate =
-          findButtonObject(
-
-            hits[i].object
-
-          );
-
-
-        if (candidate) {
-
-          clickedButton =
-            candidate;
-
-          break;
+          }
 
         }
-
-      }
-
-
-
-      if (!clickedButton) {
-
-        console.log(
-
-          'คลิกโดน Object:',
-
-          hits[0].object.name
-
-        );
-
-        return;
-
-      }
-
-
-
-      console.log(
-
-        '✅ CLICK:',
-
-        clickedButton.name
-
-      );
-
-
-
-      // =================================================
-      // ABOUT ME
-      // =================================================
-
-      if (
-
-        clickedButton.name ===
-        'BtnAboutme.001'
-
-      ) {
-
-
-        goToAboutMe();
-
-
-        document.getElementById(
-          'backButton'
-        ).style.display =
-          'block';
-
-
-        document.getElementById(
-          'donutButton'
-        ).style.display =
-          'none';
-
-
-        document.getElementById(
-          'cakeButton'
-        ).style.display =
-          'none';
-
-      }
-
-
-
-      // =================================================
-      // MENU
-      // =================================================
-
-      else if (
-
-        clickedButton.name ===
-        'BtnMenu'
-
-      ) {
-
-
-        goToMenuCake();
-
-
-        document.getElementById(
-          'backButton'
-        ).style.display =
-          'block';
-
-
-        document.getElementById(
-          'donutButton'
-        ).style.display =
-          'block';
-
-
-        document.getElementById(
-          'cakeButton'
-        ).style.display =
-          'none';
-
-      }
-
-
-
-      // =================================================
-      // PORTFOLIO
-      // =================================================
-
-      else if (
-
-        clickedButton.name ===
-        'BtnPortfolio'
-
-      ) {
-
-
-        window.open(
-
-          PORTFOLIO_URL,
-
-          '_blank'
-
-        );
-
-      }
-
-    }
-
-  );
-
-
-
-  // =====================================================
-  // HOVER
-  // =====================================================
-
-  renderer.domElement.addEventListener(
-
-    'mousemove',
-
-    function (event) {
-
-
-      if (!bakery) {
-
-        return;
-
-      }
-
-
-      mouse.x =
-
-        (
-
-          event.clientX /
-          window.innerWidth
-
-        ) * 2 - 1;
-
-
-      mouse.y =
-
-        -(
-
-          event.clientY /
-          window.innerHeight
-
-        ) * 2 + 1;
-
-
-      raycaster.setFromCamera(
-
-        mouse,
-
-        camera
-
       );
 
 
       const hits =
-        raycaster.intersectObject(
-
-          bakery,
-
+        raycaster.intersectObjects(
+          objects,
           true
-
         );
 
 
-      let isButton =
-        false;
+      if (hits.length === 0) {
+        return;
+      }
 
 
-      for (
+      let clicked =
+        hits[0].object;
 
-        let i = 0;
 
-        i < hits.length;
+      /* -----------------------------------------
+         หา Parent ที่ชื่อปุ่ม
+      ----------------------------------------- */
 
-        i++
-
+      while (
+        clicked &&
+        clicked !== bakery
       ) {
+
+        if (
+          clicked.name ===
+          'BtnAboutMe'
+        ) {
+
+          goToAboutMe();
+
+          return;
+
+        }
 
 
         if (
-
-          findButtonObject(
-
-            hits[i].object
-
-          )
-
+          clicked.name ===
+          'BtnMenu'
         ) {
 
-          isButton =
-            true;
+          goToMenuCake();
 
-          break;
+          return;
 
         }
 
+
+        if (
+          clicked.name ===
+          'BtnPortfolio'
+        ) {
+
+          window.location.href =
+            'https://example.com';
+
+          return;
+
+        }
+
+
+        clicked =
+          clicked.parent;
+
       }
 
-
-      renderer.domElement.style.cursor =
-
-        isButton
-          ? 'pointer'
-          : 'default';
-
     }
-
   );
 
 
+  /* =========================================================
+     RESIZE
+  ========================================================= */
 
-  // =====================================================
-  // BACK BUTTON
-  // =====================================================
-
-  document.getElementById(
-    'backButton'
-  ).addEventListener(
-
-    'click',
-
-    function () {
-
-      goHome();
-
-    }
-
-  );
-
-
-
-  // =====================================================
-  // DONUT BUTTON
-  // =====================================================
-
-  document.getElementById(
-    'donutButton'
-  ).addEventListener(
-
-    'click',
-
-    function () {
-
-
-      goToMenuDonut();
-
-
-      document.getElementById(
-        'donutButton'
-      ).style.display =
-        'none';
-
-
-      document.getElementById(
-        'cakeButton'
-      ).style.display =
-        'block';
-
-    }
-
-  );
-
-
-
-  // =====================================================
-  // CAKE BUTTON
-  // =====================================================
-
-  document.getElementById(
-    'cakeButton'
-  ).addEventListener(
-
-    'click',
-
-    function () {
-
-
-      // กลับไป MenuCake
-      // ใช้ฟังก์ชันเดิมที่ถูกต้อง
-
-      goToMenuCake();
-
-
-      document.getElementById(
-        'cakeButton'
-      ).style.display =
-        'none';
-
-
-      document.getElementById(
-        'donutButton'
-      ).style.display =
-        'block';
-
-    }
-
-  );
-
-
-
-  // =====================================================
-  // RESIZE
-  // =====================================================
-
-  addEventListener(
-
+  window.addEventListener(
     'resize',
-
-    () => {
-
+    function() {
 
       camera.aspect =
-
-        innerWidth /
-        innerHeight;
-
+        window.innerWidth /
+        window.innerHeight;
 
       camera.updateProjectionMatrix();
 
 
       renderer.setSize(
-
-        innerWidth,
-        innerHeight
-
+        window.innerWidth,
+        window.innerHeight
       );
 
 
       renderer.setPixelRatio(
-
         Math.min(
-
-          devicePixelRatio,
-
+          window.devicePixelRatio,
           2
-
         )
-
       );
 
     }
-
   );
 
 
-
-  // =====================================================
-  // ANIMATION
-  // =====================================================
+  /* =========================================================
+     ANIMATION
+  ========================================================= */
 
   function animate() {
 
-
     requestAnimationFrame(
-
       animate
-
     );
-
 
     controls.update();
 
-
     renderer.render(
-
       scene,
-
       camera
-
     );
 
   }
 
-
   animate();
-
 
 </script>
 
 </body>
-
 </html>

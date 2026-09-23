@@ -1,21 +1,23 @@
 <!DOCTYPE html>
-<html lang="th">
-
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <title>Bakery 3D</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Bakery</title>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     html,
     body {
+      margin: 0;
       width: 100%;
       height: 100%;
-      margin: 0;
-      padding: 0;
       overflow: hidden;
-      background: #FFF4E3;
+      font-family: Arial, sans-serif;
+      background: #f7ead8;
     }
 
     canvas {
@@ -25,22 +27,22 @@
     }
 
     /* =========================
-       HTML BUTTONS
+       BACK BUTTON
     ========================= */
-
-    #backButton,
-    #cakeButton,
-    #donutButton {
+    #backButton {
       position: fixed;
-      z-index: 20;
+      top: 25px;
+      left: 25px;
+      z-index: 10;
 
+      display: none;
+
+      padding: 12px 22px;
       border: none;
       border-radius: 12px;
 
-      padding: 12px 20px;
-
       background: white;
-      color: #5b3a29;
+      color: #5a3825;
 
       font-size: 16px;
       font-weight: bold;
@@ -48,1222 +50,1057 @@
       cursor: pointer;
 
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    #backButton:hover {
+      transform: scale(1.05);
+    }
+
+    /* =========================
+       CAKE BUTTON
+    ========================= */
+    #cakeButton {
+      position: fixed;
+      bottom: 25px;
+      left: 25px;
+      z-index: 10;
 
       display: none;
+
+      padding: 12px 22px;
+      border: none;
+      border-radius: 12px;
+
+      background: white;
+      color: #5a3825;
+
+      font-size: 16px;
+      font-weight: bold;
+
+      cursor: pointer;
+
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
-    #backButton {
-      top: 20px;
-      left: 20px;
+    #cakeButton:hover {
+      transform: scale(1.05);
     }
 
-    #cakeButton {
-      left: 20px;
-      bottom: 20px;
-    }
-
+    /* =========================
+       DONUT BUTTON
+    ========================= */
     #donutButton {
-      right: 20px;
-      bottom: 20px;
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      z-index: 10;
+
+      display: none;
+
+      padding: 12px 22px;
+      border: none;
+      border-radius: 12px;
+
+      background: white;
+      color: #5a3825;
+
+      font-size: 16px;
+      font-weight: bold;
+
+      cursor: pointer;
+
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
-    #backButton:hover,
-    #cakeButton:hover,
     #donutButton:hover {
       transform: scale(1.05);
     }
   </style>
-
-  <!-- THREE.JS -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-
-  <!-- ORBIT CONTROLS -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
-  <!-- GLTF LOADER -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-
 </head>
-
 
 <body>
 
-  <!-- BACK -->
-  <button id="backButton">
-    ← Back
-  </button>
+  <button id="backButton">← Back</button>
 
-  <!-- CAKE -->
-  <button id="cakeButton">
-    🍰 Menu Cake
-  </button>
+  <button id="cakeButton">Cake</button>
 
-  <!-- DONUT -->
-  <button id="donutButton">
-    🍩 Menu Donut
-  </button>
+  <button id="donutButton">Donut</button>
 
 
-<script>
-
-
-/* =========================================================
-   SCENE
-========================================================= */
-
-const scene = new THREE.Scene();
-
-scene.background = new THREE.Color(0xFFF4E3);
-
-
-/* =========================================================
-   CAMERA
-========================================================= */
-
-const camera = new THREE.PerspectiveCamera(
-  50,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  100
-);
-
-
-/* =========================================================
-   RENDERER
-========================================================= */
-
-const renderer = new THREE.WebGLRenderer({
-  antialias: true
-});
-
-renderer.setSize(
-  window.innerWidth,
-  window.innerHeight
-);
-
-renderer.setPixelRatio(
-  Math.min(window.devicePixelRatio, 2)
-);
-
-renderer.outputEncoding =
-  THREE.sRGBEncoding;
-
-document.body.appendChild(
-  renderer.domElement
-);
-
-
-/* =========================================================
-   ORBIT CONTROLS
-========================================================= */
-
-const controls =
-  new THREE.OrbitControls(
-    camera,
-    renderer.domElement
-  );
-
-controls.enableDamping = true;
-
-controls.dampingFactor = 0.05;
-
-controls.enableRotate = true;
-
-controls.enableZoom = true;
-
-controls.enablePan = true;
-
-
-/*
-  คลิกซ้าย = หมุน
-*/
-controls.mouseButtons.LEFT =
-  THREE.MOUSE.ROTATE;
-
-
-/*
-  คลิกขวา = เลื่อน
-*/
-controls.mouseButtons.RIGHT =
-  THREE.MOUSE.PAN;
-
-
-/*
-  คลิกกลาง = ปิด
-*/
-controls.mouseButtons.MIDDLE = null;
-
-
-/* =========================================================
-   LIGHT
-========================================================= */
-
-const ambientLight =
-  new THREE.AmbientLight(
-    0xffffff,
-    0.55
-  );
-
-scene.add(ambientLight);
-
-
-const directionalLight =
-  new THREE.DirectionalLight(
-    0xffffff,
-    0.35
-  );
-
-directionalLight.position.set(
-  5,
-  3,
-  10
-);
-
-scene.add(directionalLight);
-
-
-/* =========================================================
-   OBJECT VARIABLES
-========================================================= */
-
-let modelRoot = null;
-
-
-/* 3D BUTTONS */
-
-let btnAboutMe = null;
-
-let btnMenu = null;
-
-let btnPortfolio = null;
-
-
-/* CAMERA TARGETS */
-
-let aboutMeTarget = null;
-
-let menuCakeTarget = null;
-
-let menuDonutTarget = null;
-
-
-/* HOME CAMERA */
-
-let defaultCamPos =
-  new THREE.Vector3();
-
-let defaultCamTarget =
-  new THREE.Vector3();
-
-
-/* CURRENT PAGE */
-
-let currentPage = null;
-
-
-/* CAMERA ANIMATION */
-
-let flyAnimation = null;
-
-
-/* =========================================================
-   GLTF LOADER
-========================================================= */
-
-const loader =
-  new THREE.GLTFLoader();
-
-
-/* =========================================================
-   LOAD BAKERY
-========================================================= */
-
-loader.load(
-
-  './Bekery.glb',
-
-
-  /* =========================
-     SUCCESS
-  ========================= */
-
-  function(gltf) {
-
-    console.log(
-      'Bekery.glb โหลดสำเร็จ'
-    );
-
-
-    const model =
-      gltf.scene;
-
-    modelRoot = model;
-
-
-    /* =========================
-       FIND OBJECTS
-    ========================= */
-
-    model.traverse(
-      function(node) {
-
-        /*
-          3D BUTTON
-        */
-
-        if (
-          node.name ===
-          'BtnAboutMe'
-        ) {
-
-          btnAboutMe = node;
-
-        }
-
-
-        if (
-          node.name ===
-          'BtnMenu'
-        ) {
-
-          btnMenu = node;
-
-        }
-
-
-        if (
-          node.name ===
-          'BtnPortfolio'
-        ) {
-
-          btnPortfolio = node;
-
-        }
-
-
-        /*
-          CAMERA TARGET
-        */
-
-        if (
-          node.name ===
-          'AboutMe'
-        ) {
-
-          aboutMeTarget = node;
-
-        }
-
-
-        if (
-          node.name ===
-          'MenuCake'
-        ) {
-
-          menuCakeTarget = node;
-
-        }
-
-
-        if (
-          node.name ===
-          'MenuDonut'
-        ) {
-
-          menuDonutTarget = node;
-
-        }
-
-      }
-    );
-
-
-    /* =========================
-       ADD MODEL
-    ========================= */
-
-    scene.add(model);
-
-
-    /* =========================
-       BAKERY SIZE
-    ========================= */
-
-    const box =
-      new THREE.Box3()
-        .setFromObject(model);
-
-
-    const center =
-      new THREE.Vector3();
-
-    box.getCenter(center);
-
-
-    const size =
-      new THREE.Vector3();
-
-    box.getSize(size);
-
-
-    console.log(
-      'Bakery Size:',
-      size
-    );
-
-
-    console.log(
-      'Bakery Center:',
-      center
-    );
-
-
-    /* =====================================================
-       HOME CAMERA
-
-       ใช้ตำแหน่งเดิมที่เคยทำงาน
-    ===================================================== */
-
-    camera.position.set(
-
-      box.max.x +
-      size.x * 1.6,
-
-      center.y,
-
-      center.z +
-      size.z * 0.15
-
-    );
-
-
-    controls.target.set(
-
-      center.x,
-
-      center.y,
-
-      center.z
-
-    );
-
-
-    camera.lookAt(
-      controls.target
-    );
-
-
-    controls.update();
-
-
-    /* =========================
-       SAVE HOME CAMERA
-    ========================= */
-
-    defaultCamPos.copy(
-      camera.position
-    );
-
-    defaultCamTarget.copy(
-      controls.target
-    );
-
-
-    /* =========================
-       DEBUG OBJECTS
-    ========================= */
-
-    console.log(
-      'BtnAboutMe:',
-      btnAboutMe
-    );
-
-    console.log(
-      'BtnMenu:',
-      btnMenu
-    );
-
-    console.log(
-      'BtnPortfolio:',
-      btnPortfolio
-    );
-
-    console.log(
-      'AboutMe:',
-      aboutMeTarget
-    );
-
-    console.log(
-      'MenuCake:',
-      menuCakeTarget
-    );
-
-    console.log(
-      'MenuDonut:',
-      menuDonutTarget
-    );
-
-  },
-
-
-  /* =========================
-     LOADING
-  ========================= */
-
-  function(xhr) {
-
-    if (xhr.total > 0) {
-
-      console.log(
-
-        'Loading:',
-        (
-          xhr.loaded /
-          xhr.total *
-          100
-        ).toFixed(0) +
-        '%'
-
-      );
-
+  <!-- THREE.JS -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
     }
-
-  },
-
-
-  /* =========================
-     ERROR
-  ========================= */
-
-  function(error) {
-
-    console.error(
-      'โหลด Bekery.glb ไม่สำเร็จ',
-      error
-    );
-
   }
-
-);
-
-
-/* =========================================================
-   RAYCASTER
-========================================================= */
-
-const raycaster =
-  new THREE.Raycaster();
-
-const mouse =
-  new THREE.Vector2();
+  </script>
 
 
-/* =========================================================
-   CHECK OBJECT / CHILD
-========================================================= */
+  <script type="module">
 
-function isObjectOrChild(
-  object,
-  target
-) {
+    import * as THREE from 'three';
 
-  if (!target) {
+    import { OrbitControls } from
+      'three/addons/controls/OrbitControls.js';
 
-    return false;
-
-  }
+    import { GLTFLoader } from
+      'three/addons/loaders/GLTFLoader.js';
 
 
-  let current = object;
+    // =====================================================
+    // SCENE
+    // =====================================================
+
+    const scene = new THREE.Scene();
+
+    scene.background = new THREE.Color(0xf7ead8);
 
 
-  while (current) {
+    // =====================================================
+    // CAMERA
+    // =====================================================
 
-    if (
-      current === target
-    ) {
-
-      return true;
-
-    }
-
-
-    current =
-      current.parent;
-
-  }
-
-
-  return false;
-
-}
-
-
-/* =========================================================
-   CLICK 3D BUTTON
-========================================================= */
-
-renderer.domElement.addEventListener(
-  'click',
-  function(event) {
-
-
-    /*
-      ถ้ากล้องกำลังบิน
-      ไม่รับคลิกซ้ำ
-    */
-
-    if (
-      !modelRoot ||
-      flyAnimation
-    ) {
-
-      return;
-
-    }
-
-
-    mouse.x =
-      (
-        event.clientX /
-        window.innerWidth
-      ) * 2 - 1;
-
-
-    mouse.y =
-      -(
-        event.clientY /
-        window.innerHeight
-      ) * 2 + 1;
-
-
-    raycaster.setFromCamera(
-      mouse,
-      camera
+    const camera = new THREE.PerspectiveCamera(
+      45,
+      window.innerWidth / window.innerHeight,
+      0.01,
+      1000
     );
 
 
-    const intersects =
-      raycaster.intersectObject(
-        modelRoot,
-        true
-      );
-
-
-    if (
-      intersects.length === 0
-    ) {
-
-      return;
-
-    }
-
-
-    /* =====================================================
-       ตรวจว่าคลิกปุ่มอะไร
-    ===================================================== */
-
-    for (
-      let i = 0;
-      i < intersects.length;
-      i++
-    ) {
-
-      const hit =
-        intersects[i].object;
-
-
-      /* =========================
-         ABOUT ME
-      ========================= */
-
-      if (
-        isObjectOrChild(
-          hit,
-          btnAboutMe
-        )
-      ) {
-
-        showAboutMe();
-
-        return;
-
-      }
-
-
-      /* =========================
-         MENU
-      ========================= */
-
-      if (
-        isObjectOrChild(
-          hit,
-          btnMenu
-        )
-      ) {
-
-        showMenu();
-
-        return;
-
-      }
-
-
-      /* =========================
-         PORTFOLIO
-      ========================= */
-
-      if (
-        isObjectOrChild(
-          hit,
-          btnPortfolio
-        )
-      ) {
-
-        window.open(
-          'https://example.com',
-          '_blank'
-        );
-
-        return;
-
-      }
-
-    }
-
-  }
-);
-
-
-/* =========================================================
-   FOCUS OBJECT
-========================================================= */
-
-function focusOnObject(
-  object,
-  distance = 2.0
-) {
-
-  if (!object) {
-
-    console.warn(
-      'ไม่พบ Target สำหรับกล้อง'
-    );
-
-    return;
-
-  }
-
-
-  const box =
-    new THREE.Box3()
-      .setFromObject(object);
-
-
-  const center =
-    box.getCenter(
-      new THREE.Vector3()
-    );
-
-
-  const size =
-    box.getSize(
-      new THREE.Vector3()
-    );
-
-
-  const maxDim =
-    Math.max(
-      size.x,
-      size.y,
-      size.z,
-      0.1
-    );
-
-
-  /*
-    ใช้ทิศทางกล้องปัจจุบัน
-    เพื่อไม่เดาแกนใหม่
-  */
-
-  const direction =
-    new THREE.Vector3();
-
-
-  direction.subVectors(
-    camera.position,
-    center
-  );
-
-
-  if (
-    direction.lengthSq() <
-    0.0001
-  ) {
-
-    direction.set(
-      1,
-      0,
-      0
-    );
-
-  }
-
-
-  direction.normalize();
-
-
-  const targetCameraPosition =
-    center.clone().add(
-
-      direction.multiplyScalar(
-        maxDim * distance
-      )
-
-    );
-
-
-  flyCameraTo(
-
-    targetCameraPosition,
-
-    center,
-
-    900
-
-  );
-
-}
-
-
-/* =========================================================
-   CAMERA FLY
-========================================================= */
-
-function flyCameraTo(
-  targetPosition,
-  targetLookAt,
-  duration = 900
-) {
-
-
-  if (flyAnimation) {
-
-    cancelAnimationFrame(
-      flyAnimation
-    );
-
-  }
-
-
-  const startPosition =
-    camera.position.clone();
-
-
-  const startTarget =
-    controls.target.clone();
-
-
-  const startTime =
-    performance.now();
-
-
-  controls.enabled = false;
-
-
-  function animateCamera(now) {
-
-
-    const progress =
-      Math.min(
-        (now - startTime) /
-        duration,
-        1
-      );
-
-
-    /*
-      Smooth Ease
-    */
-
-    const ease =
-      progress < 0.5
-
-        ? 2 *
-          progress *
-          progress
-
-        : 1 -
-          Math.pow(
-            -2 * progress + 2,
-            2
-          ) / 2;
-
-
-    camera.position.lerpVectors(
-
-      startPosition,
-
-      targetPosition,
-
-      ease
-
-    );
-
-
-    controls.target.lerpVectors(
-
-      startTarget,
-
-      targetLookAt,
-
-      ease
-
-    );
-
-
-    camera.lookAt(
-      controls.target
-    );
-
-
-    if (
-      progress < 1
-    ) {
-
-      flyAnimation =
-        requestAnimationFrame(
-          animateCamera
-        );
-
-    }
-
-    else {
-
-      camera.position.copy(
-        targetPosition
-      );
-
-
-      controls.target.copy(
-        targetLookAt
-      );
-
-
-      camera.lookAt(
-        targetLookAt
-      );
-
-
-      controls.enabled = true;
-
-
-      flyAnimation = null;
-
-    }
-
-  }
-
-
-  flyAnimation =
-    requestAnimationFrame(
-      animateCamera
-    );
-
-}
-
-
-/* =========================================================
-   ABOUT ME
-========================================================= */
-
-function showAboutMe() {
-
-  currentPage =
-    'about';
-
-
-  focusOnObject(
-    aboutMeTarget,
-    2.0
-  );
-
-
-  document.getElementById(
-    'backButton'
-  ).style.display = 'block';
-
-
-  document.getElementById(
-    'cakeButton'
-  ).style.display = 'none';
-
-
-  document.getElementById(
-    'donutButton'
-  ).style.display = 'none';
-
-}
-
-
-/* =========================================================
-   MENU
-========================================================= */
-
-function showMenu() {
-
-  currentPage =
-    'menu';
-
-
-  /*
-    สำคัญ:
-    MenuCake ใช้ Target เดิม
-  */
-
-  focusOnObject(
-    menuCakeTarget,
-    2.0
-  );
-
-
-  document.getElementById(
-    'backButton'
-  ).style.display = 'block';
-
-
-  document.getElementById(
-    'cakeButton'
-  ).style.display = 'none';
-
-
-  document.getElementById(
-    'donutButton'
-  ).style.display = 'block';
-
-}
-
-
-/* =========================================================
-   MENU CAKE
-========================================================= */
-
-function showCake() {
-
-  currentPage =
-    'menu';
-
-
-  /*
-    กลับไป MenuCake
-  */
-
-  focusOnObject(
-    menuCakeTarget,
-    2.0
-  );
-
-
-  document.getElementById(
-    'cakeButton'
-  ).style.display = 'none';
-
-
-  document.getElementById(
-    'donutButton'
-  ).style.display = 'block';
-
-}
-
-
-/* =========================================================
-   MENU DONUT
-========================================================= */
-
-function showDonut() {
-
-  currentPage =
-    'menu';
-
-
-  /*
-    ไป MenuDonut
-  */
-
-  focusOnObject(
-    menuDonutTarget,
-    2.0
-  );
-
-
-  document.getElementById(
-    'cakeButton'
-  ).style.display = 'block';
-
-
-  document.getElementById(
-    'donutButton'
-  ).style.display = 'none';
-
-}
-
-
-/* =========================================================
-   GO BACK HOME
-========================================================= */
-
-function goBack() {
-
-  currentPage =
-    null;
-
-
-  flyCameraTo(
-
-    defaultCamPos,
-
-    defaultCamTarget,
-
-    900
-
-  );
-
-
-  document.getElementById(
-    'backButton'
-  ).style.display = 'none';
-
-
-  document.getElementById(
-    'cakeButton'
-  ).style.display = 'none';
-
-
-  document.getElementById(
-    'donutButton'
-  ).style.display = 'none';
-
-}
-
-
-/* =========================================================
-   HTML BACK BUTTON
-========================================================= */
-
-document.getElementById(
-  'backButton'
-).addEventListener(
-  'click',
-  function() {
-
-    goBack();
-
-  }
-);
-
-
-/* =========================================================
-   HTML CAKE BUTTON
-========================================================= */
-
-document.getElementById(
-  'cakeButton'
-).addEventListener(
-  'click',
-  function() {
-
-    showCake();
-
-  }
-);
-
-
-/* =========================================================
-   HTML DONUT BUTTON
-========================================================= */
-
-document.getElementById(
-  'donutButton'
-).addEventListener(
-  'click',
-  function() {
-
-    showDonut();
-
-  }
-);
-
-
-/* =========================================================
-   RESIZE
-========================================================= */
-
-window.addEventListener(
-  'resize',
-  function() {
-
-
-    camera.aspect =
-      window.innerWidth /
-      window.innerHeight;
-
-
-    camera.updateProjectionMatrix();
-
+    // =====================================================
+    // RENDERER
+    // =====================================================
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true
+    });
 
     renderer.setSize(
-
       window.innerWidth,
-
       window.innerHeight
-
     );
-
 
     renderer.setPixelRatio(
-
-      Math.min(
-        window.devicePixelRatio,
-        2
-      )
-
+      Math.min(window.devicePixelRatio, 2)
     );
 
-  }
-);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    document.body.appendChild(renderer.domElement);
 
 
-/* =========================================================
-   ANIMATION
-========================================================= */
+    // =====================================================
+    // LIGHT
+    // =====================================================
 
-function animate() {
+    const ambientLight = new THREE.AmbientLight(
+      0xffffff,
+      2
+    );
 
-  requestAnimationFrame(
-    animate
-  );
-
-
-  if (
-    controls.enabled
-  ) {
-
-    controls.update();
-
-  }
+    scene.add(ambientLight);
 
 
-  renderer.render(
-    scene,
-    camera
-  );
+    const directionalLight = new THREE.DirectionalLight(
+      0xffffff,
+      2
+    );
 
-}
+    directionalLight.position.set(
+      5,
+      10,
+      5
+    );
+
+    scene.add(directionalLight);
 
 
-animate();
+    // =====================================================
+    // CONTROLS
+    // =====================================================
 
-</script>
+    const controls = new OrbitControls(
+      camera,
+      renderer.domElement
+    );
+
+    controls.enableDamping = true;
+
+    controls.dampingFactor = 0.08;
+
+    controls.enablePan = false;
+
+
+    // =====================================================
+    // MODEL
+    // =====================================================
+
+    const loader = new GLTFLoader();
+
+    let modelRoot = null;
+
+
+    // =====================================================
+    // OBJECTS
+    // =====================================================
+
+    let btnAboutMe = null;
+    let btnMenu = null;
+    let btnPortfolio = null;
+
+    let aboutMeTarget = null;
+    let menuCakeTarget = null;
+    let menuDonutTarget = null;
+
+
+    // =====================================================
+    // PAGE
+    // =====================================================
+
+    let currentPage = 'home';
+
+
+    // =====================================================
+    // SAVE HOME CAMERA
+    // =====================================================
+
+    const homeCameraPosition =
+      new THREE.Vector3();
+
+    const homeCameraTarget =
+      new THREE.Vector3();
+
+
+    // =====================================================
+    // LOAD GLB
+    // =====================================================
+
+    loader.load(
+      './Bekery.glb',
+
+      function (gltf) {
+
+        modelRoot = gltf.scene;
+
+        scene.add(modelRoot);
+
+
+        // -------------------------------------------------
+        // FIND MODEL SIZE
+        // -------------------------------------------------
+
+        const box =
+          new THREE.Box3().setFromObject(modelRoot);
+
+        const center =
+          new THREE.Vector3();
+
+        box.getCenter(center);
+
+        const size =
+          new THREE.Vector3();
+
+        box.getSize(size);
+
+
+        // -------------------------------------------------
+        // HOME CAMERA
+        // -------------------------------------------------
+
+        camera.position.set(
+          box.max.x + size.x * 1.6,
+          center.y,
+          center.z + size.z * 0.15
+        );
+
+
+        controls.target.set(
+          center.x,
+          center.y,
+          center.z
+        );
+
+
+        camera.lookAt(
+          controls.target
+        );
+
+        controls.update();
+
+
+        // -------------------------------------------------
+        // SAVE HOME CAMERA
+        // -------------------------------------------------
+
+        homeCameraPosition.copy(
+          camera.position
+        );
+
+        homeCameraTarget.copy(
+          controls.target
+        );
+
+
+        // =================================================
+        // FIND OBJECTS
+        // =================================================
+
+        modelRoot.traverse(function (node) {
+
+          console.log(
+            'MODEL OBJECT:',
+            node.name
+          );
+
+
+          // ===============================================
+          // ABOUT ME BUTTON
+          // ===============================================
+
+          if (
+            node.name === 'BtnAboutme.001'
+          ) {
+
+            btnAboutMe = node;
+
+            console.log(
+              'FOUND BtnAboutme.001',
+              node
+            );
+          }
+
+
+          // ===============================================
+          // MENU BUTTON
+          // ===============================================
+
+          if (
+            node.name === 'BtnMenu'
+          ) {
+
+            btnMenu = node;
+
+            console.log(
+              'FOUND BtnMenu',
+              node
+            );
+          }
+
+
+          // ===============================================
+          // PORTFOLIO BUTTON
+          // ===============================================
+
+          if (
+            node.name === 'BtnPortfolio'
+          ) {
+
+            btnPortfolio = node;
+
+            console.log(
+              'FOUND BtnPortfolio',
+              node
+            );
+          }
+
+
+          // ===============================================
+          // ABOUT ME TARGET
+          // ===============================================
+
+          if (
+            node.name === 'AboutMe'
+          ) {
+
+            aboutMeTarget = node;
+
+            console.log(
+              'FOUND AboutMe',
+              node
+            );
+          }
+
+
+          // ===============================================
+          // MENU CAKE
+          // ===============================================
+
+          if (
+            node.name === 'MenuCake'
+          ) {
+
+            menuCakeTarget = node;
+
+            console.log(
+              'FOUND MenuCake',
+              node
+            );
+          }
+
+
+          // ===============================================
+          // MENU DONUT
+          // ===============================================
+
+          if (
+            node.name === 'MenuDonut'
+          ) {
+
+            menuDonutTarget = node;
+
+            console.log(
+              'FOUND MenuDonut',
+              node
+            );
+          }
+
+        });
+
+
+        // =================================================
+        // CHECK OBJECTS
+        // =================================================
+
+        console.log(
+          '=============================='
+        );
+
+        console.log(
+          'BtnAboutme.001:',
+          btnAboutMe
+        );
+
+        console.log(
+          'BtnMenu:',
+          btnMenu
+        );
+
+        console.log(
+          'BtnPortfolio:',
+          btnPortfolio
+        );
+
+        console.log(
+          'AboutMe:',
+          aboutMeTarget
+        );
+
+        console.log(
+          'MenuCake:',
+          menuCakeTarget
+        );
+
+        console.log(
+          'MenuDonut:',
+          menuDonutTarget
+        );
+
+        console.log(
+          '=============================='
+        );
+
+        console.log(
+          'Bakery loaded'
+        );
+
+        console.log(
+          'Size:',
+          size
+        );
+
+        console.log(
+          'Center:',
+          center
+        );
+
+      },
+
+      undefined,
+
+      function (error) {
+
+        console.error(
+          'ERROR LOADING Bekery.glb',
+          error
+        );
+
+      }
+    );
+
+
+    // =====================================================
+    // CHECK OBJECT / CHILD
+    // =====================================================
+
+    function isObjectOrChild(
+      clickedObject,
+      targetObject
+    ) {
+
+      if (
+        !clickedObject ||
+        !targetObject
+      ) {
+
+        return false;
+
+      }
+
+
+      let object =
+        clickedObject;
+
+
+      while (object) {
+
+        if (
+          object === targetObject
+        ) {
+
+          return true;
+
+        }
+
+        object =
+          object.parent;
+
+      }
+
+
+      return false;
+
+    }
+
+
+    // =====================================================
+    // FOCUS CAMERA ON OBJECT
+    // =====================================================
+
+    function focusOnObject(
+      object,
+      distance = 2
+    ) {
+
+      if (!object) {
+
+        console.warn(
+          'Target object not found'
+        );
+
+        return;
+
+      }
+
+
+      // -------------------------------------------------
+      // GET OBJECT CENTER
+      // -------------------------------------------------
+
+      const box =
+        new THREE.Box3().setFromObject(
+          object
+        );
+
+      const center =
+        new THREE.Vector3();
+
+      box.getCenter(center);
+
+
+      // -------------------------------------------------
+      // CURRENT CAMERA DIRECTION
+      // -------------------------------------------------
+
+      const direction =
+        new THREE.Vector3();
+
+      camera.getWorldDirection(
+        direction
+      );
+
+
+      // -------------------------------------------------
+      // MOVE CAMERA BACK FROM TARGET
+      // -------------------------------------------------
+
+      const targetPosition =
+        center.clone().sub(
+          direction.multiplyScalar(distance)
+        );
+
+
+      // -------------------------------------------------
+      // FLY
+      // -------------------------------------------------
+
+      flyCameraTo(
+        targetPosition,
+        center,
+        1000
+      );
+
+    }
+
+
+    // =====================================================
+    // FLY CAMERA
+    // =====================================================
+
+    function flyCameraTo(
+      targetPosition,
+      targetLookAt,
+      duration = 900
+    ) {
+
+      const startPosition =
+        camera.position.clone();
+
+      const startTarget =
+        controls.target.clone();
+
+
+      const startTime =
+        performance.now();
+
+
+      function animateCamera() {
+
+        const elapsed =
+          performance.now() -
+          startTime;
+
+
+        const progress =
+          Math.min(
+            elapsed / duration,
+            1
+          );
+
+
+        // smooth easing
+        const eased =
+          1 -
+          Math.pow(
+            1 - progress,
+            3
+          );
+
+
+        camera.position.lerpVectors(
+          startPosition,
+          targetPosition,
+          eased
+        );
+
+
+        controls.target.lerpVectors(
+          startTarget,
+          targetLookAt,
+          eased
+        );
+
+
+        controls.update();
+
+
+        if (progress < 1) {
+
+          requestAnimationFrame(
+            animateCamera
+          );
+
+        }
+
+      }
+
+
+      animateCamera();
+
+    }
+
+
+    // =====================================================
+    // SHOW ABOUT ME
+    // =====================================================
+
+    function showAboutMe() {
+
+      if (!aboutMeTarget) {
+
+        console.warn(
+          'AboutMe target not found'
+        );
+
+        return;
+
+      }
+
+
+      currentPage = 'about';
+
+
+      focusOnObject(
+        aboutMeTarget,
+        2.0
+      );
+
+
+      document.getElementById(
+        'backButton'
+      ).style.display = 'block';
+
+
+      document.getElementById(
+        'cakeButton'
+      ).style.display = 'none';
+
+
+      document.getElementById(
+        'donutButton'
+      ).style.display = 'none';
+
+    }
+
+
+    // =====================================================
+    // SHOW MENU
+    // =====================================================
+
+    function showMenu() {
+
+      currentPage = 'menu';
+
+
+      showCake();
+
+
+      document.getElementById(
+        'backButton'
+      ).style.display = 'block';
+
+
+      document.getElementById(
+        'cakeButton'
+      ).style.display = 'block';
+
+
+      document.getElementById(
+        'donutButton'
+      ).style.display = 'block';
+
+    }
+
+
+    // =====================================================
+    // SHOW CAKE
+    // =====================================================
+
+    function showCake() {
+
+      if (!menuCakeTarget) {
+
+        console.warn(
+          'MenuCake target not found'
+        );
+
+        return;
+
+      }
+
+
+      focusOnObject(
+        menuCakeTarget,
+        2.0
+      );
+
+    }
+
+
+    // =====================================================
+    // SHOW DONUT
+    // =====================================================
+
+    function showDonut() {
+
+      if (!menuDonutTarget) {
+
+        console.warn(
+          'MenuDonut target not found'
+        );
+
+        return;
+
+      }
+
+
+      focusOnObject(
+        menuDonutTarget,
+        2.0
+      );
+
+    }
+
+
+    // =====================================================
+    // GO HOME
+    // =====================================================
+
+    function goBack() {
+
+      currentPage = 'home';
+
+
+      flyCameraTo(
+        homeCameraPosition,
+        homeCameraTarget,
+        1000
+      );
+
+
+      document.getElementById(
+        'backButton'
+      ).style.display = 'none';
+
+
+      document.getElementById(
+        'cakeButton'
+      ).style.display = 'none';
+
+
+      document.getElementById(
+        'donutButton'
+      ).style.display = 'none';
+
+    }
+
+
+    // =====================================================
+    // RAYCASTER
+    // =====================================================
+
+    const raycaster =
+      new THREE.Raycaster();
+
+    const mouse =
+      new THREE.Vector2();
+
+
+    renderer.domElement.addEventListener(
+      'pointerdown',
+      function (event) {
+
+
+        // -------------------------------------------------
+        // MOUSE POSITION
+        // -------------------------------------------------
+
+        mouse.x =
+          (event.clientX /
+            window.innerWidth) *
+            2 - 1;
+
+
+        mouse.y =
+          -(event.clientY /
+            window.innerHeight) *
+            2 + 1;
+
+
+        // -------------------------------------------------
+        // RAYCAST
+        // -------------------------------------------------
+
+        raycaster.setFromCamera(
+          mouse,
+          camera
+        );
+
+
+        if (!modelRoot) {
+
+          return;
+
+        }
+
+
+        const intersects =
+          raycaster.intersectObject(
+            modelRoot,
+            true
+          );
+
+
+        if (
+          intersects.length === 0
+        ) {
+
+          return;
+
+        }
+
+
+        const clicked =
+          intersects[0].object;
+
+
+        console.log(
+          'CLICKED:',
+          clicked.name
+        );
+
+
+        // =================================================
+        // ABOUT ME
+        // =================================================
+
+        if (
+          isObjectOrChild(
+            clicked,
+            btnAboutMe
+          )
+        ) {
+
+          console.log(
+            'ABOUT ME CLICKED'
+          );
+
+          showAboutMe();
+
+          return;
+
+        }
+
+
+        // =================================================
+        // MENU
+        // =================================================
+
+        if (
+          isObjectOrChild(
+            clicked,
+            btnMenu
+          )
+        ) {
+
+          console.log(
+            'MENU CLICKED'
+          );
+
+          showMenu();
+
+          return;
+
+        }
+
+
+        // =================================================
+        // PORTFOLIO
+        // =================================================
+
+        if (
+          isObjectOrChild(
+            clicked,
+            btnPortfolio
+          )
+        ) {
+
+          console.log(
+            'PORTFOLIO CLICKED'
+          );
+
+          window.open(
+            'https://example.com',
+            '_blank'
+          );
+
+          return;
+
+        }
+
+      }
+    );
+
+
+    // =====================================================
+    // HTML BUTTONS
+    // =====================================================
+
+    document.getElementById(
+      'backButton'
+    ).addEventListener(
+      'click',
+      goBack
+    );
+
+
+    document.getElementById(
+      'cakeButton'
+    ).addEventListener(
+      'click',
+      showCake
+    );
+
+
+    document.getElementById(
+      'donutButton'
+    ).addEventListener(
+      'click',
+      showDonut
+    );
+
+
+    // =====================================================
+    // RESIZE
+    // =====================================================
+
+    window.addEventListener(
+      'resize',
+      function () {
+
+        camera.aspect =
+          window.innerWidth /
+          window.innerHeight;
+
+        camera.updateProjectionMatrix();
+
+
+        renderer.setSize(
+          window.innerWidth,
+          window.innerHeight
+        );
+
+      }
+    );
+
+
+    // =====================================================
+    // ANIMATION
+    // =====================================================
+
+    function animate() {
+
+      requestAnimationFrame(
+        animate
+      );
+
+
+      controls.update();
+
+
+      renderer.render(
+        scene,
+        camera
+      );
+
+    }
+
+
+    animate();
+
+  </script>
 
 </body>
 </html>

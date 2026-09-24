@@ -1,42 +1,43 @@
-```html
 <!DOCTYPE html>
-<html lang="th">
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Bakery 3D</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bakery Portfolio</title>
 
   <style>
-    html, body {
-      width: 100%;
-      height: 100%;
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
       margin: 0;
-      padding: 0;
       overflow: hidden;
-      background: #FFF4E3;
+      background: #f6eee5;
+      font-family: Arial, sans-serif;
     }
 
     canvas {
       display: block;
-      width: 100%;
-      height: 100%;
     }
 
-    #backButton,
-    #cakeButton,
-    #donutButton {
+    button {
       position: fixed;
-      z-index: 20;
+      z-index: 10;
       border: none;
       border-radius: 12px;
       padding: 12px 20px;
-      background: white;
-      color: #5b3a29;
       font-size: 16px;
       font-weight: bold;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      display: none;
+      background: #fff;
+      color: #5b3824;
+      box-shadow: 0 4px 12px rgba(0,0,0,.18);
+      transition: .2s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
     }
 
     #backButton {
@@ -45,1134 +46,773 @@
     }
 
     #cakeButton {
-      left: 20px;
       bottom: 20px;
+      left: 20px;
     }
 
     #donutButton {
-      right: 20px;
       bottom: 20px;
+      right: 20px;
     }
 
-    #backButton:hover,
-    #cakeButton:hover,
-    #donutButton:hover {
-      transform: scale(1.05);
+    #status {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      padding: 8px 14px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.9);
+      color: #5b3824;
+      font-size: 13px;
+      display: none;
     }
   </style>
-
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 
 <body>
 
   <button id="backButton">← Back</button>
-  <button id="cakeButton">🍰 Menu Cake</button>
-  <button id="donutButton">🍩 Menu Donut</button>
+  <button id="cakeButton">Cake</button>
+  <button id="donutButton">Donut</button>
 
-<script>
+  <div id="status"></div>
 
-/* =========================================================
-   SCENE
-========================================================= */
-
-const scene = new THREE.Scene();
-
-scene.background =
-  new THREE.Color(0xFFF4E3);
-
-
-/* =========================================================
-   CAMERA
-========================================================= */
-
-const camera =
-  new THREE.PerspectiveCamera(
-    50,
-    window.innerWidth /
-    window.innerHeight,
-    0.1,
-    100
-  );
-
-
-/* =========================================================
-   RENDERER
-========================================================= */
-
-const renderer =
-  new THREE.WebGLRenderer({
-    antialias: true
-  });
-
-renderer.setSize(
-  window.innerWidth,
-  window.innerHeight
-);
-
-renderer.setPixelRatio(
-  Math.min(
-    window.devicePixelRatio,
-    2
-  )
-);
-
-renderer.outputEncoding =
-  THREE.sRGBEncoding;
-
-renderer.shadowMap.enabled = true;
-
-renderer.shadowMap.type =
-  THREE.PCFSoftShadowMap;
-
-document.body.appendChild(
-  renderer.domElement
-);
-
-
-/* =========================================================
-   ORBIT CONTROLS
-========================================================= */
-
-const controls =
-  new THREE.OrbitControls(
-    camera,
-    renderer.domElement
-  );
-
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-
-controls.enableRotate = true;
-controls.enableZoom = true;
-controls.enablePan = true;
-
-controls.mouseButtons.LEFT =
-  THREE.MOUSE.ROTATE;
-
-controls.mouseButtons.RIGHT =
-  THREE.MOUSE.PAN;
-
-controls.mouseButtons.MIDDLE = null;
-
-
-/* =========================================================
-   LIGHT
-========================================================= */
-
-const ambientLight =
-  new THREE.AmbientLight(
-    0xffffff,
-    0.55
-  );
-
-scene.add(ambientLight);
-
-
-const directionalLight =
-  new THREE.DirectionalLight(
-    0xffffff,
-    0.35
-  );
-
-directionalLight.position.set(
-  5,
-  3,
-  10
-);
-
-directionalLight.castShadow = true;
-
-scene.add(directionalLight);
-
-
-const bakeryPointLight =
-  new THREE.PointLight(
-    0xffb35c,
-    1.8,
-    20,
-    2
-  );
-
-bakeryPointLight.position.set(
-  2,
-  5,
-  4
-);
-
-bakeryPointLight.castShadow = true;
-
-scene.add(bakeryPointLight);
-
-
-/* =========================================================
-   OBJECT VARIABLES
-========================================================= */
-
-let modelRoot = null;
-
-
-/* 3D BUTTONS */
-
-let btnAboutMe = null;
-let btnMenu = null;
-let btnPortfolio = null;
-
-
-/* CAMERA TARGETS */
-
-let aboutMeTarget = null;
-let menuCakeTarget = null;
-let menuDonutTarget = null;
-
-
-/* HOME CAMERA */
-
-let defaultCamPos =
-  new THREE.Vector3();
-
-let defaultCamTarget =
-  new THREE.Vector3();
-
-
-/* CAMERA ANIMATION */
-
-let flyAnimation = null;
-
-
-/* =========================================================
-   FIND OBJECT
-========================================================= */
-
-function findObject(
-  root,
-  objectName
-) {
-
-  let result = null;
-
-  root.traverse(function(node) {
-
-    if (
-      node.name &&
-      node.name.trim().toLowerCase() ===
-      objectName.trim().toLowerCase()
-    ) {
-
-      if (!result) {
-        result = node;
-      }
-
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
     }
+  }
+  </script>
 
-  });
+  <script type="module">
 
-  return result;
-}
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
+    // =========================
+    // SCENE
+    // =========================
 
-/* =========================================================
-   GLTF LOADER
-========================================================= */
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf6eee5);
 
-const loader =
-  new THREE.GLTFLoader();
-
-
-/* =========================================================
-   LOAD BAKERY
-========================================================= */
-
-loader.load(
-
-  './Bekery(2).glb?v=4',
-
-  function(gltf) {
-
-    console.log(
-      'Bekery(2).glb โหลดสำเร็จ'
+    const camera = new THREE.PerspectiveCamera(
+      45,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
     );
 
-    const model =
-      gltf.scene;
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true
+    });
 
-    modelRoot = model;
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-
-    /* =====================================================
-       FIND 3D BUTTONS
-    ===================================================== */
-
-    btnAboutMe =
-      findObject(
-        model,
-        'BtnAboutme.002'
-      );
-
-    btnMenu =
-      findObject(
-        model,
-        'BtnMenu'
-      );
-
-    btnPortfolio =
-      findObject(
-        model,
-        'BtnPortfolio'
-      );
+    document.body.appendChild(renderer.domElement);
 
 
-    /* =====================================================
-       FIND CAMERA TARGETS
-    ===================================================== */
+    // =========================
+    // LIGHT
+    // =========================
 
-    aboutMeTarget =
-      findObject(
-        model,
-        'Aboutme.001'
-      );
+    const ambientLight = new THREE.HemisphereLight(
+      0xffffff,
+      0x8b6b55,
+      2.5
+    );
 
-    menuCakeTarget =
-      findObject(
-        model,
-        'MenuCake'
-      );
+    scene.add(ambientLight);
 
-    menuDonutTarget =
-      findObject(
-        model,
-        'MenuDonut'
-      );
+    const mainLight = new THREE.DirectionalLight(
+      0xffffff,
+      3
+    );
+
+    mainLight.position.set(5, 10, 8);
+    mainLight.castShadow = true;
+
+    scene.add(mainLight);
 
 
-    /* =====================================================
-       MATERIAL + SHADOW
-    ===================================================== */
+    // =========================
+    // CONTROLS
+    // =========================
 
-    model.traverse(function(node) {
+    const controls = new OrbitControls(
+      camera,
+      renderer.domElement
+    );
 
-      if (node.isMesh) {
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.enablePan = false;
+    controls.minDistance = 2;
+    controls.maxDistance = 30;
 
-        node.castShadow = true;
-        node.receiveShadow = true;
+
+    // =========================
+    // VARIABLES
+    // =========================
+
+    let model;
+
+    let btnAboutMe;
+    let btnMenu;
+    let btnPortfolio;
+
+    let aboutMeTarget;
+    let menuCakeTarget;
+    let menuDonutTarget;
+
+    let currentTarget = null;
+
+    let isFlying = false;
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+
+    // =========================
+    // FIND OBJECT
+    // =========================
+
+    function findObject(root, name) {
+
+      let result = null;
+
+      root.traverse((node) => {
 
         if (
-          node.name === 'Cylinder'
+          node.name &&
+          node.name.trim().toLowerCase() ===
+          name.trim().toLowerCase()
         ) {
+          if (!result) {
+            result = node;
+          }
+        }
 
-          node.material =
-            new THREE.MeshPhysicalMaterial({
+      });
 
-              color: 0xD4AF37,
+      return result;
+    }
 
-              metalness: 0.9,
 
-              roughness: 0.18,
+    // =========================
+    // LOAD MODEL
+    // =========================
 
-              clearcoat: 0.75,
+    const loader = new GLTFLoader();
 
-              clearcoatRoughness: 0.1,
+    loader.load(
 
-              side: THREE.DoubleSide
+      './Bekery.glb',
 
-            });
+      (gltf) => {
+
+        model = gltf.scene;
+
+        scene.add(model);
+
+        // Shadows
+        model.traverse((node) => {
+
+          if (node.isMesh) {
+
+            node.castShadow = true;
+            node.receiveShadow = true;
+
+          }
+
+        });
+
+
+        // =========================
+        // FIND BUTTONS / TARGETS
+        // =========================
+
+        btnAboutMe =
+          findObject(model, 'BtnAboutme.002');
+
+        btnMenu =
+          findObject(model, 'BtnMenu');
+
+        btnPortfolio =
+          findObject(model, 'BtnPortfolio');
+
+        aboutMeTarget =
+          findObject(model, 'Aboutme.001');
+
+        menuCakeTarget =
+          findObject(model, 'MenuCake');
+
+        menuDonutTarget =
+          findObject(model, 'MenuDonut');
+
+
+        console.log('BtnAboutme.002:', btnAboutMe);
+        console.log('Aboutme.001:', aboutMeTarget);
+        console.log('BtnMenu:', btnMenu);
+        console.log('BtnPortfolio:', btnPortfolio);
+        console.log('MenuCake:', menuCakeTarget);
+        console.log('MenuDonut:', menuDonutTarget);
+
+
+        // =========================
+        // HOME CAMERA
+        // =========================
+
+        const box = new THREE.Box3().setFromObject(model);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+
+        camera.position.set(
+          box.max.x + size.x * 1.6,
+          center.y,
+          center.z + size.z * 0.15
+        );
+
+        controls.target.set(
+          center.x,
+          center.y,
+          center.z
+        );
+
+        camera.lookAt(controls.target);
+        controls.update();
+
+        currentTarget = null;
+
+        console.log('===== MODEL LOADED =====');
+
+      },
+
+      (progress) => {
+
+        if (progress.total) {
+
+          console.log(
+            'Loading:',
+            Math.round(
+              progress.loaded / progress.total * 100
+            ) + '%'
+          );
+
+        }
+
+      },
+
+      (error) => {
+
+        console.error(
+          'GLB LOAD ERROR:',
+          error
+        );
+
+        showStatus(
+          'โหลด Bekery.glb ไม่สำเร็จ'
+        );
+
+      }
+
+    );
+
+
+    // =========================
+    // CAMERA FLY
+    // =========================
+
+    function flyCameraTo(targetObject) {
+
+      if (!targetObject || isFlying) return;
+
+      isFlying = true;
+
+      const box =
+        new THREE.Box3()
+          .setFromObject(targetObject);
+
+      const center =
+        box.getCenter(
+          new THREE.Vector3()
+        );
+
+      const size =
+        box.getSize(
+          new THREE.Vector3()
+        );
+
+      const startPosition =
+        camera.position.clone();
+
+      const startTarget =
+        controls.target.clone();
+
+      const direction =
+        new THREE.Vector3()
+          .subVectors(
+            camera.position,
+            controls.target
+          )
+          .normalize();
+
+      const distance =
+        Math.max(
+          size.x,
+          size.y,
+          size.z,
+          1
+        ) * 4;
+
+      const endPosition =
+        center.clone()
+          .add(
+            direction.multiplyScalar(distance)
+          );
+
+      const endTarget =
+        center.clone();
+
+      const duration = 1000;
+
+      const startTime =
+        performance.now();
+
+
+      function animateCamera(time) {
+
+        const progress =
+          Math.min(
+            (time - startTime) / duration,
+            1
+          );
+
+        const eased =
+          1 - Math.pow(1 - progress, 3);
+
+        camera.position.lerpVectors(
+          startPosition,
+          endPosition,
+          eased
+        );
+
+        controls.target.lerpVectors(
+          startTarget,
+          endTarget,
+          eased
+        );
+
+        camera.lookAt(
+          controls.target
+        );
+
+        controls.update();
+
+        if (progress < 1) {
+
+          requestAnimationFrame(
+            animateCamera
+          );
+
+        } else {
+
+          isFlying = false;
+          currentTarget = targetObject;
 
         }
 
       }
 
-    });
+      requestAnimationFrame(
+        animateCamera
+      );
+
+    }
 
 
-    /* =====================================================
-       ADD MODEL
-    ===================================================== */
+    // =========================
+    // SHOW ABOUT
+    // =========================
 
-    scene.add(model);
+    function showAboutMe() {
 
-
-    /* =====================================================
-       BAKERY SIZE
-    ===================================================== */
-
-    const box =
-      new THREE.Box3()
-        .setFromObject(model);
-
-    const center =
-      new THREE.Vector3();
-
-    box.getCenter(center);
-
-    const size =
-      new THREE.Vector3();
-
-    box.getSize(size);
-
-
-    /* =====================================================
-       HOME CAMERA
-    ===================================================== */
-
-    camera.position.set(
-
-      box.max.x +
-      size.x * 1.6,
-
-      center.y,
-
-      center.z +
-      size.z * 0.15
-
-    );
-
-    controls.target.set(
-
-      center.x,
-      center.y,
-      center.z
-
-    );
-
-    camera.lookAt(
-      controls.target
-    );
-
-    controls.update();
-
-
-    /* =====================================================
-       SAVE HOME CAMERA
-    ===================================================== */
-
-    defaultCamPos.copy(
-      camera.position
-    );
-
-    defaultCamTarget.copy(
-      controls.target
-    );
-
-
-    /* =====================================================
-       DEBUG
-    ===================================================== */
-
-    console.log(
-      'BtnAboutme.002:',
-      btnAboutMe
-    );
-
-    console.log(
-      'BtnMenu:',
-      btnMenu
-    );
-
-    console.log(
-      'BtnPortfolio:',
-      btnPortfolio
-    );
-
-    console.log(
-      'Aboutme.001:',
-      aboutMeTarget
-    );
-
-    console.log(
-      'MenuCake:',
-      menuCakeTarget
-    );
-
-    console.log(
-      'MenuDonut:',
-      menuDonutTarget
-    );
-
-
-    /* =====================================================
-       SHOW ALL MODEL NAMES
-    ===================================================== */
-
-    console.log(
-      '===== MODEL OBJECT NAMES ====='
-    );
-
-    model.traverse(function(node) {
-
-      if (node.name) {
-        console.log(
-          node.name
+      if (!aboutMeTarget) {
+        console.warn(
+          'Aboutme.001 not found'
         );
+        return;
       }
 
-    });
-
-    console.log(
-      '===== END MODEL NAMES ====='
-    );
-
-  },
-
-  function(xhr) {
-
-    if (xhr.total > 0) {
-
-      console.log(
-        'Loading:',
-        (
-          xhr.loaded /
-          xhr.total *
-          100
-        ).toFixed(0) + '%'
+      flyCameraTo(
+        aboutMeTarget
       );
 
     }
 
-  },
 
-  function(error) {
+    // =========================
+    // SHOW MENU
+    // =========================
 
-    console.error(
-      'โหลด Bekery(2).glb ไม่สำเร็จ',
-      error
-    );
+    function showMenu() {
 
-  }
+      if (!menuCakeTarget) {
+        console.warn(
+          'MenuCake not found'
+        );
+        return;
+      }
 
-);
-
-
-/* =========================================================
-   RAYCASTER
-========================================================= */
-
-const raycaster =
-  new THREE.Raycaster();
-
-const mouse =
-  new THREE.Vector2();
-
-
-/* =========================================================
-   CHECK OBJECT / CHILD
-========================================================= */
-
-function isObjectOrChild(
-  object,
-  target
-) {
-
-  if (!target) {
-    return false;
-  }
-
-  let current = object;
-
-  while (current) {
-
-    if (
-      current === target
-    ) {
-
-      return true;
-
-    }
-
-    current =
-      current.parent;
-
-  }
-
-  return false;
-}
-
-
-/* =========================================================
-   CLICK 3D BUTTON
-========================================================= */
-
-renderer.domElement.addEventListener(
-  'click',
-  function(event) {
-
-    if (
-      !modelRoot ||
-      flyAnimation
-    ) {
-
-      return;
-
-    }
-
-
-    mouse.x =
-      (
-        event.clientX /
-        window.innerWidth
-      ) * 2 - 1;
-
-    mouse.y =
-      -(
-        event.clientY /
-        window.innerHeight
-      ) * 2 + 1;
-
-
-    raycaster.setFromCamera(
-      mouse,
-      camera
-    );
-
-
-    const intersects =
-      raycaster.intersectObject(
-        modelRoot,
-        true
+      flyCameraTo(
+        menuCakeTarget
       );
 
+    }
 
-    if (
-      intersects.length === 0
-    ) {
 
-      return;
+    // =========================
+    // SHOW CAKE
+    // =========================
+
+    function showCake() {
+
+      if (!menuCakeTarget) return;
+
+      flyCameraTo(
+        menuCakeTarget
+      );
 
     }
 
 
-    for (
-      let i = 0;
-      i < intersects.length;
-      i++
-    ) {
+    // =========================
+    // SHOW DONUT
+    // =========================
 
-      const hit =
-        intersects[i].object;
+    function showDonut() {
 
+      if (!menuDonutTarget) return;
 
-      /* ABOUT ME */
+      flyCameraTo(
+        menuDonutTarget
+      );
 
-      if (
-        isObjectOrChild(
-          hit,
-          btnAboutMe
-        )
-      ) {
-
-        showAboutMe();
-
-        return;
-
-      }
+    }
 
 
-      /* MENU */
+    // =========================
+    // BACK HOME
+    // =========================
 
-      if (
-        isObjectOrChild(
-          hit,
-          btnMenu
-        )
-      ) {
+    function goBack() {
 
-        showMenu();
+      if (!model || isFlying) return;
 
-        return;
+      const box =
+        new THREE.Box3()
+          .setFromObject(model);
 
-      }
-
-
-      /* PORTFOLIO */
-
-      if (
-        isObjectOrChild(
-          hit,
-          btnPortfolio
-        )
-      ) {
-
-        window.open(
-          'https://example.com',
-          '_blank'
+      const center =
+        box.getCenter(
+          new THREE.Vector3()
         );
 
-        return;
+      const size =
+        box.getSize(
+          new THREE.Vector3()
+        );
+
+      const startPosition =
+        camera.position.clone();
+
+      const startTarget =
+        controls.target.clone();
+
+      const endPosition =
+        new THREE.Vector3(
+          box.max.x + size.x * 1.6,
+          center.y,
+          center.z + size.z * 0.15
+        );
+
+      const endTarget =
+        center.clone();
+
+      const duration = 1000;
+
+      const startTime =
+        performance.now();
+
+      isFlying = true;
+
+      function animateBack(time) {
+
+        const progress =
+          Math.min(
+            (time - startTime) / duration,
+            1
+          );
+
+        const eased =
+          1 - Math.pow(1 - progress, 3);
+
+        camera.position.lerpVectors(
+          startPosition,
+          endPosition,
+          eased
+        );
+
+        controls.target.lerpVectors(
+          startTarget,
+          endTarget,
+          eased
+        );
+
+        camera.lookAt(
+          controls.target
+        );
+
+        controls.update();
+
+        if (progress < 1) {
+
+          requestAnimationFrame(
+            animateBack
+          );
+
+        } else {
+
+          isFlying = false;
+          currentTarget = null;
+
+        }
 
       }
 
-    }
-
-  }
-);
-
-
-/* =========================================================
-   FOCUS OBJECT
-========================================================= */
-
-function focusOnObject(
-  object,
-  distance = 2.0
-) {
-
-  if (!object) {
-
-    console.warn(
-      'ไม่พบ Target สำหรับกล้อง'
-    );
-
-    return;
-
-  }
-
-
-  object.updateWorldMatrix(
-    true,
-    true
-  );
-
-
-  const box =
-    new THREE.Box3()
-      .setFromObject(object);
-
-
-  const center =
-    box.getCenter(
-      new THREE.Vector3()
-    );
-
-
-  const size =
-    box.getSize(
-      new THREE.Vector3()
-    );
-
-
-  const maxDim =
-    Math.max(
-      size.x,
-      size.y,
-      size.z,
-      0.1
-    );
-
-
-  const direction =
-    new THREE.Vector3();
-
-
-  direction.subVectors(
-    camera.position,
-    center
-  );
-
-
-  if (
-    direction.lengthSq() <
-    0.0001
-  ) {
-
-    direction.set(
-      1,
-      0,
-      0
-    );
-
-  }
-
-
-  direction.normalize();
-
-
-  const targetCameraPosition =
-    center.clone().add(
-
-      direction.multiplyScalar(
-        maxDim * distance
-      )
-
-    );
-
-
-  flyCameraTo(
-    targetCameraPosition,
-    center,
-    900
-  );
-
-}
-
-
-/* =========================================================
-   CAMERA FLY
-========================================================= */
-
-function flyCameraTo(
-  targetPosition,
-  targetLookAt,
-  duration = 900
-) {
-
-  if (flyAnimation) {
-
-    cancelAnimationFrame(
-      flyAnimation
-    );
-
-  }
-
-
-  const startPosition =
-    camera.position.clone();
-
-  const startTarget =
-    controls.target.clone();
-
-  const startTime =
-    performance.now();
-
-
-  controls.enabled = false;
-
-
-  function animateCamera(now) {
-
-    const progress =
-      Math.min(
-        (now - startTime) /
-        duration,
-        1
+      requestAnimationFrame(
+        animateBack
       );
 
-
-    const ease =
-      progress < 0.5
-
-        ? 2 *
-          progress *
-          progress
-
-        : 1 -
-          Math.pow(
-            -2 * progress + 2,
-            2
-          ) / 2;
+    }
 
 
-    camera.position.lerpVectors(
+    // =========================
+    // CLICK 3D OBJECT
+    // =========================
 
-      startPosition,
-
-      targetPosition,
-
-      ease
-
-    );
-
-
-    controls.target.lerpVectors(
-
-      startTarget,
-
-      targetLookAt,
-
-      ease
-
-    );
-
-
-    camera.lookAt(
-      controls.target
-    );
-
-
-    if (
-      progress < 1
+    function isObjectOrChild(
+      object,
+      target
     ) {
 
-      flyAnimation =
-        requestAnimationFrame(
-          animateCamera
+      let current = object;
+
+      while (current) {
+
+        if (current === target) {
+          return true;
+        }
+
+        current = current.parent;
+
+      }
+
+      return false;
+
+    }
+
+
+    renderer.domElement.addEventListener(
+      'pointerdown',
+      (event) => {
+
+        if (!model || isFlying) return;
+
+        mouse.x =
+          (event.clientX /
+            window.innerWidth) * 2 - 1;
+
+        mouse.y =
+          -(event.clientY /
+            window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(
+          mouse,
+          camera
         );
 
+        const intersects =
+          raycaster.intersectObject(
+            model,
+            true
+          );
+
+        if (!intersects.length) {
+          return;
+        }
+
+        const clicked =
+          intersects[0].object;
+
+
+        // About Me
+        if (
+          btnAboutMe &&
+          isObjectOrChild(
+            clicked,
+            btnAboutMe
+          )
+        ) {
+
+          showAboutMe();
+          return;
+
+        }
+
+
+        // Menu
+        if (
+          btnMenu &&
+          isObjectOrChild(
+            clicked,
+            btnMenu
+          )
+        ) {
+
+          showMenu();
+          return;
+
+        }
+
+
+        // Portfolio
+        if (
+          btnPortfolio &&
+          isObjectOrChild(
+            clicked,
+            btnPortfolio
+          )
+        ) {
+
+          window.open(
+            'https://example.com',
+            '_blank'
+          );
+
+          return;
+
+        }
+
+      }
+    );
+
+
+    // =========================
+    // HTML BUTTONS
+    // =========================
+
+    document
+      .getElementById('cakeButton')
+      .addEventListener(
+        'click',
+        showCake
+      );
+
+
+    document
+      .getElementById('donutButton')
+      .addEventListener(
+        'click',
+        showDonut
+      );
+
+
+    document
+      .getElementById('backButton')
+      .addEventListener(
+        'click',
+        goBack
+      );
+
+
+    // =========================
+    // STATUS
+    // =========================
+
+    function showStatus(text) {
+
+      const status =
+        document.getElementById(
+          'status'
+        );
+
+      status.textContent = text;
+      status.style.display = 'block';
+
+      setTimeout(() => {
+
+        status.style.display = 'none';
+
+      }, 2500);
+
     }
 
-    else {
 
-      camera.position.copy(
-        targetPosition
+    // =========================
+    // RESIZE
+    // =========================
+
+    window.addEventListener(
+      'resize',
+      () => {
+
+        camera.aspect =
+          window.innerWidth /
+          window.innerHeight;
+
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(
+          window.innerWidth,
+          window.innerHeight
+        );
+
+      }
+    );
+
+
+    // =========================
+    // ANIMATE
+    // =========================
+
+    function animate() {
+
+      requestAnimationFrame(
+        animate
       );
 
-      controls.target.copy(
-        targetLookAt
+      controls.update();
+
+      renderer.render(
+        scene,
+        camera
       );
-
-      camera.lookAt(
-        targetLookAt
-      );
-
-      controls.enabled = true;
-
-      flyAnimation = null;
 
     }
 
-  }
+    animate();
 
-
-  flyAnimation =
-    requestAnimationFrame(
-      animateCamera
-    );
-
-}
-
-
-/* =========================================================
-   ABOUT ME
-========================================================= */
-
-function showAboutMe() {
-
-  focusOnObject(
-    aboutMeTarget,
-    2.0
-  );
-
-
-  document.getElementById(
-    'backButton'
-  ).style.display = 'block';
-
-
-  document.getElementById(
-    'cakeButton'
-  ).style.display = 'none';
-
-
-  document.getElementById(
-    'donutButton'
-  ).style.display = 'none';
-
-}
-
-
-/* =========================================================
-   MENU
-========================================================= */
-
-function showMenu() {
-
-  focusOnObject(
-    menuCakeTarget,
-    2.0
-  );
-
-
-  document.getElementById(
-    'backButton'
-  ).style.display = 'block';
-
-
-  document.getElementById(
-    'cakeButton'
-  ).style.display = 'none';
-
-
-  document.getElementById(
-    'donutButton'
-  ).style.display = 'block';
-
-}
-
-
-/* =========================================================
-   MENU CAKE
-========================================================= */
-
-function showCake() {
-
-  focusOnObject(
-    menuCakeTarget,
-    2.0
-  );
-
-
-  document.getElementById(
-    'cakeButton'
-  ).style.display = 'none';
-
-
-  document.getElementById(
-    'donutButton'
-  ).style.display = 'block';
-
-}
-
-
-/* =========================================================
-   MENU DONUT
-========================================================= */
-
-function showDonut() {
-
-  focusOnObject(
-    menuDonutTarget,
-    2.0
-  );
-
-
-  document.getElementById(
-    'cakeButton'
-  ).style.display = 'block';
-
-
-  document.getElementById(
-    'donutButton'
-  ).style.display = 'none';
-
-}
-
-
-/* =========================================================
-   GO BACK HOME
-========================================================= */
-
-function goBack() {
-
-  flyCameraTo(
-
-    defaultCamPos,
-
-    defaultCamTarget,
-
-    900
-
-  );
-
-
-  document.getElementById(
-    'backButton'
-  ).style.display = 'none';
-
-
-  document.getElementById(
-    'cakeButton'
-  ).style.display = 'none';
-
-
-  document.getElementById(
-    'donutButton'
-  ).style.display = 'none';
-
-}
-
-
-/* =========================================================
-   HTML BUTTONS
-========================================================= */
-
-document.getElementById(
-  'backButton'
-).addEventListener(
-  'click',
-  function() {
-
-    goBack();
-
-  }
-);
-
-
-document.getElementById(
-  'cakeButton'
-).addEventListener(
-  'click',
-  function() {
-
-    showCake();
-
-  }
-);
-
-
-document.getElementById(
-  'donutButton'
-).addEventListener(
-  'click',
-  function() {
-
-    showDonut();
-
-  }
-);
-
-
-/* =========================================================
-   RESIZE
-========================================================= */
-
-window.addEventListener(
-  'resize',
-  function() {
-
-    camera.aspect =
-      window.innerWidth /
-      window.innerHeight;
-
-    camera.updateProjectionMatrix();
-
-    renderer.setSize(
-      window.innerWidth,
-      window.innerHeight
-    );
-
-    renderer.setPixelRatio(
-      Math.min(
-        window.devicePixelRatio,
-        2
-      )
-    );
-
-  }
-);
-
-
-/* =========================================================
-   ANIMATION
-========================================================= */
-
-function animate() {
-
-  requestAnimationFrame(
-    animate
-  );
-
-
-  if (
-    controls.enabled
-  ) {
-
-    controls.update();
-
-  }
-
-
-  renderer.render(
-    scene,
-    camera
-  );
-
-}
-
-
-animate();
-
-</script>
+  </script>
 
 </body>
 </html>
-```

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,8 +10,10 @@
       box-sizing: border-box;
     }
 
-    body {
+    html, body {
       margin: 0;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
       background: #f6eee5;
       font-family: Arial, sans-serif;
@@ -40,6 +42,13 @@
       transform: scale(1.05);
     }
 
+    /* ซ่อนทั้งหมดตอนเริ่ม */
+    #backButton,
+    #cakeButton,
+    #donutButton {
+      display: none;
+    }
+
     #backButton {
       top: 20px;
       left: 20px;
@@ -54,20 +63,6 @@
       bottom: 20px;
       right: 20px;
     }
-
-    #status {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 20;
-      padding: 8px 14px;
-      border-radius: 10px;
-      background: rgba(255,255,255,.9);
-      color: #5b3824;
-      font-size: 13px;
-      display: none;
-    }
   </style>
 </head>
 
@@ -76,8 +71,6 @@
   <button id="backButton">← Back</button>
   <button id="cakeButton">Cake</button>
   <button id="donutButton">Donut</button>
-
-  <div id="status"></div>
 
   <script type="importmap">
   {
@@ -94,51 +87,86 @@
     import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
+
     // =========================
     // SCENE
     // =========================
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf6eee5);
 
-    const camera = new THREE.PerspectiveCamera(
-      45,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
+    scene.background =
+      new THREE.Color(0xf6eee5);
+
+
+    // =========================
+    // CAMERA
+    // =========================
+
+    const camera =
+      new THREE.PerspectiveCamera(
+        45,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      );
+
+
+    // =========================
+    // RENDERER
+    // =========================
+
+    const renderer =
+      new THREE.WebGLRenderer({
+        antialias: true
+      });
+
+    renderer.setSize(
+      window.innerWidth,
+      window.innerHeight
     );
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true
-    });
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, 2)
+    );
 
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.type =
+      THREE.PCFSoftShadowMap;
 
-    document.body.appendChild(renderer.domElement);
+    renderer.outputColorSpace =
+      THREE.SRGBColorSpace;
+
+    document.body.appendChild(
+      renderer.domElement
+    );
 
 
     // =========================
     // LIGHT
     // =========================
 
-    const ambientLight = new THREE.HemisphereLight(
-      0xffffff,
-      0x8b6b55,
-      2.5
-    );
+    const ambientLight =
+      new THREE.HemisphereLight(
+        0xffffff,
+        0x8b6b55,
+        2.5
+      );
 
     scene.add(ambientLight);
 
-    const mainLight = new THREE.DirectionalLight(
-      0xffffff,
-      3
+
+    const mainLight =
+      new THREE.DirectionalLight(
+        0xffffff,
+        3
+      );
+
+    mainLight.position.set(
+      5,
+      10,
+      8
     );
 
-    mainLight.position.set(5, 10, 8);
     mainLight.castShadow = true;
 
     scene.add(mainLight);
@@ -148,10 +176,11 @@
     // CONTROLS
     // =========================
 
-    const controls = new OrbitControls(
-      camera,
-      renderer.domElement
-    );
+    const controls =
+      new OrbitControls(
+        camera,
+        renderer.domElement
+      );
 
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
@@ -164,42 +193,69 @@
     // VARIABLES
     // =========================
 
-    let model;
+    let model = null;
 
-    let btnAboutMe;
-    let btnMenu;
-    let btnPortfolio;
+    let btnAboutMe = null;
+    let btnMenu = null;
+    let btnPortfolio = null;
 
-    let aboutMeTarget;
-    let menuCakeTarget;
-    let menuDonutTarget;
-
-    let currentTarget = null;
+    let aboutMeTarget = null;
+    let menuCakeTarget = null;
+    let menuDonutTarget = null;
 
     let isFlying = false;
 
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
+
+    // =========================
+    // HTML BUTTON
+    // =========================
+
+    const backButton =
+      document.getElementById(
+        'backButton'
+      );
+
+    const cakeButton =
+      document.getElementById(
+        'cakeButton'
+      );
+
+    const donutButton =
+      document.getElementById(
+        'donutButton'
+      );
 
 
     // =========================
     // FIND OBJECT
     // =========================
 
-    function findObject(root, name) {
+    function findObject(
+      root,
+      name
+    ) {
 
       let result = null;
 
       root.traverse((node) => {
 
+        if (!node.name) return;
+
+        const nodeName =
+          node.name
+            .trim()
+            .toLowerCase();
+
+        const targetName =
+          name
+            .trim()
+            .toLowerCase();
+
         if (
-          node.name &&
-          node.name.trim().toLowerCase() ===
-          name.trim().toLowerCase()
+          nodeName === targetName &&
+          !result
         ) {
-          if (!result) {
-            result = node;
-          }
+          result = node;
         }
 
       });
@@ -209,22 +265,31 @@
 
 
     // =========================
-    // LOAD MODEL
+    // LOAD GLB
     // =========================
 
-    const loader = new GLTFLoader();
+    const loader =
+      new GLTFLoader();
 
     loader.load(
 
-      './Bekery.glb',
+      './Bekery.glb?v=5',
 
       (gltf) => {
+
+        console.log(
+          '===== GLB LOAD SUCCESS ====='
+        );
 
         model = gltf.scene;
 
         scene.add(model);
 
-        // Shadows
+
+        // =========================
+        // SHADOW
+        // =========================
+
         model.traverse((node) => {
 
           if (node.isMesh) {
@@ -238,49 +303,113 @@
 
 
         // =========================
-        // FIND BUTTONS / TARGETS
+        // FIND OBJECTS
         // =========================
 
         btnAboutMe =
-          findObject(model, 'BtnAboutme.002');
+          findObject(
+            model,
+            'BtnAboutme.002'
+          );
 
         btnMenu =
-          findObject(model, 'BtnMenu');
+          findObject(
+            model,
+            'BtnMenu'
+          );
 
         btnPortfolio =
-          findObject(model, 'BtnPortfolio');
+          findObject(
+            model,
+            'BtnPortfolio'
+          );
+
 
         aboutMeTarget =
-          findObject(model, 'Aboutme.001');
+          findObject(
+            model,
+            'Aboutme.001'
+          );
 
         menuCakeTarget =
-          findObject(model, 'MenuCake');
+          findObject(
+            model,
+            'MenuCake'
+          );
 
         menuDonutTarget =
-          findObject(model, 'MenuDonut');
+          findObject(
+            model,
+            'MenuDonut'
+          );
 
 
-        console.log('BtnAboutme.002:', btnAboutMe);
-        console.log('Aboutme.001:', aboutMeTarget);
-        console.log('BtnMenu:', btnMenu);
-        console.log('BtnPortfolio:', btnPortfolio);
-        console.log('MenuCake:', menuCakeTarget);
-        console.log('MenuDonut:', menuDonutTarget);
+        // =========================
+        // CONSOLE CHECK
+        // =========================
+
+        console.log(
+          'BtnAboutme.002 =',
+          btnAboutMe
+        );
+
+        console.log(
+          'Aboutme.001 =',
+          aboutMeTarget
+        );
+
+        console.log(
+          'BtnMenu =',
+          btnMenu
+        );
+
+        console.log(
+          'BtnPortfolio =',
+          btnPortfolio
+        );
+
+        console.log(
+          'MenuCake =',
+          menuCakeTarget
+        );
+
+        console.log(
+          'MenuDonut =',
+          menuDonutTarget
+        );
 
 
         // =========================
         // HOME CAMERA
         // =========================
 
-        const box = new THREE.Box3().setFromObject(model);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
+        const box =
+          new THREE.Box3()
+            .setFromObject(model);
+
+        const center =
+          box.getCenter(
+            new THREE.Vector3()
+          );
+
+        const size =
+          box.getSize(
+            new THREE.Vector3()
+          );
+
 
         camera.position.set(
-          box.max.x + size.x * 1.6,
+
+          box.max.x +
+            size.x * 1.6,
+
           center.y,
-          center.z + size.z * 0.15
+
+          center.z +
+            size.z * 0.15
+
         );
+
 
         controls.target.set(
           center.x,
@@ -288,12 +417,16 @@
           center.z
         );
 
-        camera.lookAt(controls.target);
+        camera.lookAt(
+          controls.target
+        );
+
         controls.update();
 
-        currentTarget = null;
 
-        console.log('===== MODEL LOADED =====');
+        console.log(
+          '===== MODEL READY ====='
+        );
 
       },
 
@@ -304,7 +437,9 @@
           console.log(
             'Loading:',
             Math.round(
-              progress.loaded / progress.total * 100
+              progress.loaded /
+              progress.total *
+              100
             ) + '%'
           );
 
@@ -315,12 +450,8 @@
       (error) => {
 
         console.error(
-          'GLB LOAD ERROR:',
+          'Bekery.glb LOAD ERROR:',
           error
-        );
-
-        showStatus(
-          'โหลด Bekery.glb ไม่สำเร็จ'
         );
 
       }
@@ -332,73 +463,133 @@
     // CAMERA FLY
     // =========================
 
-    function flyCameraTo(targetObject) {
+    function flyCameraTo(
+      targetObject
+    ) {
 
-      if (!targetObject || isFlying) return;
+      if (
+        !targetObject ||
+        isFlying
+      ) {
+        return;
+      }
+
 
       isFlying = true;
 
+      controls.enabled = false;
+
+
+      targetObject.updateWorldMatrix(
+        true,
+        true
+      );
+
+
       const box =
         new THREE.Box3()
-          .setFromObject(targetObject);
+          .setFromObject(
+            targetObject
+          );
+
 
       const center =
         box.getCenter(
           new THREE.Vector3()
         );
 
+
       const size =
         box.getSize(
           new THREE.Vector3()
         );
 
+
       const startPosition =
         camera.position.clone();
 
+
       const startTarget =
         controls.target.clone();
+
 
       const direction =
         new THREE.Vector3()
           .subVectors(
             camera.position,
             controls.target
-          )
-          .normalize();
+          );
 
-      const distance =
+
+      if (
+        direction.lengthSq() <
+        0.0001
+      ) {
+
+        direction.set(
+          1,
+          0,
+          0
+        );
+
+      }
+
+
+      direction.normalize();
+
+
+      const maxSize =
         Math.max(
           size.x,
           size.y,
           size.z,
-          1
-        ) * 4;
+          0.5
+        );
+
 
       const endPosition =
-        center.clone()
-          .add(
-            direction.multiplyScalar(distance)
-          );
+        center.clone().add(
+          direction.multiplyScalar(
+            maxSize * 3.5
+          )
+        );
+
 
       const endTarget =
         center.clone();
 
-      const duration = 1000;
+
+      const duration = 900;
 
       const startTime =
         performance.now();
 
 
-      function animateCamera(time) {
+      function animateCamera(
+        time
+      ) {
 
         const progress =
           Math.min(
-            (time - startTime) / duration,
+            (time - startTime) /
+            duration,
             1
           );
 
+
         const eased =
-          1 - Math.pow(1 - progress, 3);
+          progress < 0.5
+
+            ? 2 *
+              progress *
+              progress
+
+            : 1 -
+              Math.pow(
+                -2 * progress + 2,
+                2
+              ) / 2;
+
 
         camera.position.lerpVectors(
           startPosition,
@@ -406,19 +597,22 @@
           eased
         );
 
+
         controls.target.lerpVectors(
           startTarget,
           endTarget,
           eased
         );
 
+
         camera.lookAt(
           controls.target
         );
 
-        controls.update();
 
-        if (progress < 1) {
+        if (
+          progress < 1
+        ) {
 
           requestAnimationFrame(
             animateCamera
@@ -426,12 +620,26 @@
 
         } else {
 
+          camera.position.copy(
+            endPosition
+          );
+
+          controls.target.copy(
+            endTarget
+          );
+
+          camera.lookAt(
+            controls.target
+          );
+
+          controls.enabled = true;
+
           isFlying = false;
-          currentTarget = targetObject;
 
         }
 
       }
+
 
       requestAnimationFrame(
         animateCamera
@@ -441,130 +649,240 @@
 
 
     // =========================
-    // SHOW ABOUT
+    // ABOUT ME
     // =========================
 
     function showAboutMe() {
 
+      console.log(
+        'ABOUT CLICK'
+      );
+
+      console.log(
+        'Button:',
+        btnAboutMe
+      );
+
+      console.log(
+        'Target:',
+        aboutMeTarget
+      );
+
+
       if (!aboutMeTarget) {
+
         console.warn(
-          'Aboutme.001 not found'
+          'หา Aboutme.001 ไม่เจอ'
         );
+
         return;
+
       }
+
 
       flyCameraTo(
         aboutMeTarget
       );
 
+
+      // แสดงเฉพาะ Back
+      backButton.style.display =
+        'block';
+
+      cakeButton.style.display =
+        'none';
+
+      donutButton.style.display =
+        'none';
+
     }
 
 
     // =========================
-    // SHOW MENU
+    // MENU
     // =========================
 
     function showMenu() {
 
       if (!menuCakeTarget) {
+
         console.warn(
-          'MenuCake not found'
+          'หา MenuCake ไม่เจอ'
         );
+
         return;
+
       }
+
 
       flyCameraTo(
         menuCakeTarget
       );
 
+
+      backButton.style.display =
+        'block';
+
+      cakeButton.style.display =
+        'none';
+
+      donutButton.style.display =
+        'block';
+
     }
 
 
     // =========================
-    // SHOW CAKE
+    // CAKE
     // =========================
 
     function showCake() {
 
-      if (!menuCakeTarget) return;
+      if (!menuCakeTarget) {
+        return;
+      }
+
 
       flyCameraTo(
         menuCakeTarget
       );
 
+
+      backButton.style.display =
+        'block';
+
+      cakeButton.style.display =
+        'none';
+
+      donutButton.style.display =
+        'block';
+
     }
 
 
     // =========================
-    // SHOW DONUT
+    // DONUT
     // =========================
 
     function showDonut() {
 
-      if (!menuDonutTarget) return;
+      if (!menuDonutTarget) {
+        return;
+      }
+
 
       flyCameraTo(
         menuDonutTarget
       );
 
+
+      backButton.style.display =
+        'block';
+
+      cakeButton.style.display =
+        'block';
+
+      donutButton.style.display =
+        'none';
+
     }
 
 
     // =========================
-    // BACK HOME
+    // BACK
     // =========================
 
     function goBack() {
 
-      if (!model || isFlying) return;
+      if (
+        !model ||
+        isFlying
+      ) {
+        return;
+      }
+
 
       const box =
         new THREE.Box3()
-          .setFromObject(model);
+          .setFromObject(
+            model
+          );
+
 
       const center =
         box.getCenter(
           new THREE.Vector3()
         );
 
+
       const size =
         box.getSize(
           new THREE.Vector3()
         );
 
+
       const startPosition =
         camera.position.clone();
+
 
       const startTarget =
         controls.target.clone();
 
+
       const endPosition =
         new THREE.Vector3(
-          box.max.x + size.x * 1.6,
+
+          box.max.x +
+            size.x * 1.6,
+
           center.y,
-          center.z + size.z * 0.15
+
+          center.z +
+            size.z * 0.15
+
         );
+
 
       const endTarget =
         center.clone();
 
-      const duration = 1000;
+
+      const duration = 900;
 
       const startTime =
         performance.now();
 
+
       isFlying = true;
 
-      function animateBack(time) {
+      controls.enabled = false;
+
+
+      function animateBack(
+        time
+      ) {
 
         const progress =
           Math.min(
-            (time - startTime) / duration,
+            (time - startTime) /
+            duration,
             1
           );
 
+
         const eased =
-          1 - Math.pow(1 - progress, 3);
+          progress < 0.5
+
+            ? 2 *
+              progress *
+              progress
+
+            : 1 -
+              Math.pow(
+                -2 * progress + 2,
+                2
+              ) / 2;
+
 
         camera.position.lerpVectors(
           startPosition,
@@ -572,19 +890,22 @@
           eased
         );
 
+
         controls.target.lerpVectors(
           startTarget,
           endTarget,
           eased
         );
 
+
         camera.lookAt(
           controls.target
         );
 
-        controls.update();
 
-        if (progress < 1) {
+        if (
+          progress < 1
+        ) {
 
           requestAnimationFrame(
             animateBack
@@ -592,64 +913,123 @@
 
         } else {
 
+          camera.position.copy(
+            endPosition
+          );
+
+          controls.target.copy(
+            endTarget
+          );
+
+          camera.lookAt(
+            controls.target
+          );
+
+          controls.enabled = true;
+
           isFlying = false;
-          currentTarget = null;
 
         }
 
       }
 
+
       requestAnimationFrame(
         animateBack
       );
+
+
+      // กลับหน้าแรก = ซ่อนทุกปุ่ม
+      backButton.style.display =
+        'none';
+
+      cakeButton.style.display =
+        'none';
+
+      donutButton.style.display =
+        'none';
 
     }
 
 
     // =========================
-    // CLICK 3D OBJECT
+    // RAYCASTER
     // =========================
+
+    const raycaster =
+      new THREE.Raycaster();
+
+    const mouse =
+      new THREE.Vector2();
+
 
     function isObjectOrChild(
       object,
       target
     ) {
 
+      if (!target) {
+        return false;
+      }
+
+
       let current = object;
+
 
       while (current) {
 
-        if (current === target) {
+        if (
+          current === target
+        ) {
+
           return true;
+
         }
 
-        current = current.parent;
+        current =
+          current.parent;
 
       }
+
 
       return false;
 
     }
 
 
+    // =========================
+    // 3D CLICK
+    // =========================
+
     renderer.domElement.addEventListener(
-      'pointerdown',
+      'click',
       (event) => {
 
-        if (!model || isFlying) return;
+        if (
+          !model ||
+          isFlying
+        ) {
+          return;
+        }
+
 
         mouse.x =
           (event.clientX /
-            window.innerWidth) * 2 - 1;
+            window.innerWidth) *
+          2 - 1;
+
 
         mouse.y =
           -(event.clientY /
-            window.innerHeight) * 2 + 1;
+            window.innerHeight) *
+          2 + 1;
+
 
         raycaster.setFromCamera(
           mouse,
           camera
         );
+
 
         const intersects =
           raycaster.intersectObject(
@@ -657,59 +1037,73 @@
             true
           );
 
-        if (!intersects.length) {
+
+        if (
+          intersects.length === 0
+        ) {
           return;
         }
 
-        const clicked =
-          intersects[0].object;
 
-
-        // About Me
-        if (
-          btnAboutMe &&
-          isObjectOrChild(
-            clicked,
-            btnAboutMe
-          )
+        // สำคัญ:
+        // เช็กทุก object ที่โดน
+        // ไม่ใช่เฉพาะตัวแรก
+        for (
+          let i = 0;
+          i < intersects.length;
+          i++
         ) {
 
-          showAboutMe();
-          return;
-
-        }
+          const hit =
+            intersects[i].object;
 
 
-        // Menu
-        if (
-          btnMenu &&
-          isObjectOrChild(
-            clicked,
-            btnMenu
-          )
-        ) {
+          // ABOUT ME
+          if (
+            isObjectOrChild(
+              hit,
+              btnAboutMe
+            )
+          ) {
 
-          showMenu();
-          return;
+            showAboutMe();
 
-        }
+            return;
+
+          }
 
 
-        // Portfolio
-        if (
-          btnPortfolio &&
-          isObjectOrChild(
-            clicked,
-            btnPortfolio
-          )
-        ) {
+          // MENU
+          if (
+            isObjectOrChild(
+              hit,
+              btnMenu
+            )
+          ) {
 
-          window.open(
-            'https://example.com',
-            '_blank'
-          );
+            showMenu();
 
-          return;
+            return;
+
+          }
+
+
+          // PORTFOLIO
+          if (
+            isObjectOrChild(
+              hit,
+              btnPortfolio
+            )
+          ) {
+
+            window.open(
+              'https://example.com',
+              '_blank'
+            );
+
+            return;
+
+          }
 
         }
 
@@ -718,54 +1112,25 @@
 
 
     // =========================
-    // HTML BUTTONS
+    // HTML BUTTON EVENTS
     // =========================
 
-    document
-      .getElementById('cakeButton')
-      .addEventListener(
-        'click',
-        showCake
-      );
+    backButton.addEventListener(
+      'click',
+      goBack
+    );
 
 
-    document
-      .getElementById('donutButton')
-      .addEventListener(
-        'click',
-        showDonut
-      );
+    cakeButton.addEventListener(
+      'click',
+      showCake
+    );
 
 
-    document
-      .getElementById('backButton')
-      .addEventListener(
-        'click',
-        goBack
-      );
-
-
-    // =========================
-    // STATUS
-    // =========================
-
-    function showStatus(text) {
-
-      const status =
-        document.getElementById(
-          'status'
-        );
-
-      status.textContent = text;
-      status.style.display = 'block';
-
-      setTimeout(() => {
-
-        status.style.display = 'none';
-
-      }, 2500);
-
-    }
+    donutButton.addEventListener(
+      'click',
+      showDonut
+    );
 
 
     // =========================
@@ -801,7 +1166,11 @@
         animate
       );
 
-      controls.update();
+      if (
+        controls.enabled
+      ) {
+        controls.update();
+      }
 
       renderer.render(
         scene,

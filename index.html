@@ -247,38 +247,55 @@
         });
 
 
-        /* =========================
+        /* =================================================
            AWNING VERTEX SHADER
-        ========================= */
+           ใช้กับกันสาด 3 อัน
+        ================================================= */
 
-        const awning =
-          bakery.getObjectByName("Cube.052");
+        const awningNames = [
+
+          "Plane.001",
+
+          "Plane.002",
+
+          "Plane.003"
+
+        ];
 
 
-        console.log(
-          "Awning Cube.052:",
-          awning
-        );
+        awningNames.forEach(function(name) {
+
+          const awning =
+            bakery.getObjectByName(name);
 
 
-        if (awning) {
+          console.log(
+            "Awning:",
+            name,
+            awning
+          );
 
-          if (awning.isMesh) {
+
+          if (
+            awning &&
+            awning.isMesh
+          ) {
 
             addVertexAnimation(
               awning
             );
 
           }
+          else {
 
-        }
-        else {
+            console.log(
+              "ไม่พบกันสาด:",
+              name
+            );
 
-          console.log(
-            "ไม่พบ Cube.052"
-          );
+          }
 
-        }
+        });
 
 
         /* =========================
@@ -390,34 +407,50 @@
     );
 
 
-    /* =========================
+    /* =====================================================
        ADD VERTEX ANIMATION
-    ========================= */
+       สำหรับกันสาด Plane.001 / 002 / 003
+    ===================================================== */
 
     function addVertexAnimation(mesh) {
 
-      /* Clone material
-         เพื่อไม่กระทบ Object อื่น */
+      /* =========================
+         CLONE MATERIAL
+         ไม่กระทบ Object อื่น
+      ========================= */
 
       mesh.material =
         mesh.material.clone();
 
 
+      /* =========================
+         SHADER
+      ========================= */
+
       mesh.material.onBeforeCompile =
         function(shader) {
+
+
+          /* =========================
+             TIME UNIFORM
+          ========================= */
 
           shader.uniforms.uTime =
             shaderTime;
 
 
           /* =========================
-             VERTEX SHADER
+             ADD uTime
           ========================= */
 
           shader.vertexShader =
             "uniform float uTime;\n" +
             shader.vertexShader;
 
+
+          /* =========================
+             VERTEX SHADER
+          ========================= */
 
           shader.vertexShader =
             shader.vertexShader.replace(
@@ -427,17 +460,54 @@
               `
               #include <begin_vertex>
 
-              float wave =
+
+              /* =========================
+                 WAVE X
+              ========================= */
+
+              float waveX =
                 sin(
-                  transformed.x * 5.0
+                  transformed.x * 4.0
                   + uTime * 2.0
                 );
 
-              transformed.z +=
-                wave * 0.25;
+
+              /* =========================
+                 WAVE Y
+              ========================= */
+
+              float waveY =
+                sin(
+                  transformed.y * 4.0
+                  + uTime * 1.5
+                );
+
+
+              /* =========================
+                 COMBINE WAVE
+              ========================= */
+
+              float wave =
+                (waveX + waveY)
+                * 0.5;
+
+
+              /* =========================
+                 MOVE ALONG NORMAL
+              ========================= */
+
+              transformed +=
+                objectNormal
+                * wave
+                * 0.35;
+
               `
             );
 
+
+          /* =========================
+             SAVE SHADER
+          ========================= */
 
           mesh.userData.shader =
             shader;
@@ -445,12 +515,17 @@
         };
 
 
+      /* =========================
+         UPDATE MATERIAL
+      ========================= */
+
       mesh.material.needsUpdate =
         true;
 
 
       console.log(
-        "Vertex Shader ทำงานกับ Cube.052 แล้ว!"
+        "Vertex Shader ทำงานกับ:",
+        mesh.name
       );
 
     }
@@ -991,7 +1066,9 @@
           );
 
 
-        /* Smooth Step */
+        /* =========================
+           SMOOTH STEP
+        ========================= */
 
         t =
           t * t *
@@ -1044,6 +1121,7 @@
 
 
     animate();
+
 
   </script>
 

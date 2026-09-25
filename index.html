@@ -251,24 +251,34 @@
            AWNING VERTEX SHADER
         ========================= */
 
-       /* =========================
-   FIND ALL OBJECT NAMES
-========================= */
+        const awning =
+          bakery.getObjectByName("Cube.052");
 
-console.log("===== OBJECTS IN BAKERY =====");
 
-bakery.traverse(function(object) {
+        console.log(
+          "Awning Cube.052:",
+          awning
+        );
 
-  console.log(
-    object.name,
-    object.type
-  );
 
-});
+        if (awning) {
 
-console.log(
-  "===== END OBJECTS ====="
-);
+          if (awning.isMesh) {
+
+            addVertexAnimation(
+              awning
+            );
+
+          }
+
+        }
+        else {
+
+          console.log(
+            "ไม่พบ Cube.052"
+          );
+
+        }
 
 
         /* =========================
@@ -440,7 +450,7 @@ console.log(
 
 
       console.log(
-        "Vertex Shader ทำงานกับ Cube.041 แล้ว!"
+        "Vertex Shader ทำงานกับ Cube.052 แล้ว!"
       );
 
     }
@@ -490,11 +500,13 @@ console.log(
     ) {
 
       if (!targetObject) {
+
         console.log(
           "ไม่พบ target"
         );
 
         return;
+
       }
 
 
@@ -844,9 +856,11 @@ console.log(
 
           movingCamera = true;
 
+
           startCamera.copy(
             camera.position
           );
+
 
           startTarget.copy(
             controls.target
@@ -856,6 +870,7 @@ console.log(
           endCamera.copy(
             homeCameraPosition
           );
+
 
           endTarget.copy(
             homeTarget

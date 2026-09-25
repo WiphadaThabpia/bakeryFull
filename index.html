@@ -251,34 +251,24 @@
            AWNING VERTEX SHADER
         ========================= */
 
-        const awning =
-          bakery.getObjectByName("Cube.041");
+       /* =========================
+   FIND ALL OBJECT NAMES
+========================= */
 
+console.log("===== OBJECTS IN BAKERY =====");
 
-        console.log(
-          "Awning Cube.041:",
-          awning
-        );
+bakery.traverse(function(object) {
 
+  console.log(
+    object.name,
+    object.type
+  );
 
-        if (awning) {
+});
 
-          if (awning.isMesh) {
-
-            addVertexAnimation(
-              awning
-            );
-
-          }
-
-        }
-        else {
-
-          console.log(
-            "ไม่พบ Cube.041"
-          );
-
-        }
+console.log(
+  "===== END OBJECTS ====="
+);
 
 
         /* =========================

@@ -18,11 +18,13 @@ canvas{display:block}
 <body>
 <button id="backButton">← กลับ</button>
 <button id="nextButton">Menu Donut →</button>
+
 <script>
 const scene=new THREE.Scene();
 scene.background=new THREE.Color(0xFFF4E3);
 
 const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,100);
+
 const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth,innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio,2));
@@ -69,6 +71,7 @@ let bakery=null;
 
 const homeCameraPosition=new THREE.Vector3();
 const homeTarget=new THREE.Vector3();
+
 let currentPage="home";
 
 loader.load("Bekery.glb",function(gltf){
@@ -121,6 +124,7 @@ loader.load("Bekery.glb",function(gltf){
 
 let movingCamera=false;
 let moveStartTime=0;
+
 const startCamera=new THREE.Vector3();
 const startTarget=new THREE.Vector3();
 const endCamera=new THREE.Vector3();
@@ -134,28 +138,30 @@ function moveCameraTo(targetObject,type){
 
     const targetPosition=new THREE.Vector3();
     targetObject.getWorldPosition(targetPosition);
+
     endTarget.copy(targetPosition);
 
     // ==================================================
-    // ABOUT ME — แก้เฉพาะส่วนนี้
+    // ABOUT ME
+    // ซูมเข้าตามมุมกล้องเดิม ไม่เปลี่ยนทิศ
     // ==================================================
     if(type==="about"){
-        const box=new THREE.Box3().setFromObject(targetObject);
-        const size=new THREE.Vector3();
-        box.getSize(size);
+        const direction=new THREE.Vector3();
 
-        // เข้าใกล้ป้ายและโฟกัสตรงกลางป้าย
-        endCamera.set(
-            targetPosition.x+Math.max(size.x*2.0,2.2),
-            targetPosition.y+Math.max(size.y*0.15,0.2),
-            targetPosition.z+Math.max(size.z*0.15,0.3)
+        camera.getWorldDirection(direction);
+
+        endCamera.copy(camera.position);
+
+        endCamera.add(
+            direction.multiplyScalar(4)
         );
 
         currentPage="about";
     }
 
     // ==================================================
-    // MENU CAKE — เหมือนโค้ดของเธอเดิม
+    // MENU CAKE
+    // ใช้เหมือนโค้ดเดิมของเธอ
     // ==================================================
     if(type==="menuCake"){
         endCamera.set(
@@ -168,7 +174,8 @@ function moveCameraTo(targetObject,type){
     }
 
     // ==================================================
-    // MENU DONUT — เหมือนโค้ดของเธอเดิม
+    // MENU DONUT
+    // ใช้เหมือนโค้ดเดิมของเธอ
     // ==================================================
     if(type==="menuDonut"){
         endCamera.set(
@@ -182,8 +189,10 @@ function moveCameraTo(targetObject,type){
 
     startCamera.copy(camera.position);
     startTarget.copy(controls.target);
+
     moveStartTime=performance.now();
     movingCamera=true;
+
     controls.enabled=false;
 
     document.getElementById("backButton").style.display="block";
@@ -206,99 +215,220 @@ renderer.domElement.addEventListener("click",function(event){
 
     raycaster.setFromCamera(mouse,camera);
 
-    const hits=raycaster.intersectObjects(bakery.children,true);
+    const hits=raycaster.intersectObjects(
+        bakery.children,
+        true
+    );
 
     if(hits.length===0)return;
 
     let clicked=hits[0].object;
 
-    while(clicked&&clicked.parent&&clicked.parent!==bakery){
+    while(
+        clicked &&
+        clicked.parent &&
+        clicked.parent!==bakery
+    ){
         if(
-            clicked.name==="BtnAboutme.002"||
-            clicked.name==="BtnMenu"||
+            clicked.name==="BtnAboutme.002" ||
+            clicked.name==="BtnMenu" ||
             clicked.name==="BtnPortfolio"
         ){
             break;
         }
+
         clicked=clicked.parent;
     }
 
     console.log("Clicked:",clicked.name);
 
+    // ==================================================
     // ABOUT ME
+    // ==================================================
     if(clicked.name==="BtnAboutme.002"){
-        const aboutTarget=bakery.getObjectByName("Aboutme.001");
-        moveCameraTo(aboutTarget,"about");
+
+        const aboutTarget=
+            bakery.getObjectByName("Aboutme.001");
+
+        moveCameraTo(
+            aboutTarget,
+            "about"
+        );
     }
 
+    // ==================================================
     // MENU
+    // ==================================================
     else if(clicked.name==="BtnMenu"){
-        const menuTarget=bakery.getObjectByName("MenuCake");
-        moveCameraTo(menuTarget,"menuCake");
+
+        const menuTarget=
+            bakery.getObjectByName("MenuCake");
+
+        moveCameraTo(
+            menuTarget,
+            "menuCake"
+        );
     }
 
+    // ==================================================
     // PORTFOLIO
+    // ==================================================
     else if(clicked.name==="BtnPortfolio"){
-        window.open("https://example.com","_blank");
+
+        window.open(
+            "https://example.com",
+            "_blank"
+        );
     }
 });
 
-document.getElementById("nextButton").addEventListener("click",function(){
-    const donutTarget=bakery.getObjectByName("MenuDonut");
-    moveCameraTo(donutTarget,"menuDonut");
-});
+// ======================================================
+// NEXT MENU DONUT
+// ======================================================
+document.getElementById("nextButton").addEventListener(
+    "click",
+    function(){
 
-document.getElementById("backButton").addEventListener("click",function(){
-    // MenuDonut → MenuCake
-    if(currentPage==="menuDonut"){
-        const cakeTarget=bakery.getObjectByName("MenuCake");
-        moveCameraTo(cakeTarget,"menuCake");
-        return;
+        const donutTarget=
+            bakery.getObjectByName("MenuDonut");
+
+        moveCameraTo(
+            donutTarget,
+            "menuDonut"
+        );
     }
+);
 
-    // หน้าอื่น → หน้าหลัก
-    movingCamera=true;
-    startCamera.copy(camera.position);
-    startTarget.copy(controls.target);
-    endCamera.copy(homeCameraPosition);
-    endTarget.copy(homeTarget);
-    moveStartTime=performance.now();
+// ======================================================
+// BACK BUTTON
+// ======================================================
+document.getElementById("backButton").addEventListener(
+    "click",
+    function(){
 
-    currentPage="home";
-    controls.enabled=false;
+        // MenuDonut → MenuCake
+        if(currentPage==="menuDonut"){
 
-    document.getElementById("backButton").style.display="none";
-    document.getElementById("nextButton").style.display="none";
-});
+            const cakeTarget=
+                bakery.getObjectByName("MenuCake");
 
+            moveCameraTo(
+                cakeTarget,
+                "menuCake"
+            );
+
+            return;
+        }
+
+        // หน้าอื่น → หน้าหลัก
+        movingCamera=true;
+
+        startCamera.copy(
+            camera.position
+        );
+
+        startTarget.copy(
+            controls.target
+        );
+
+        endCamera.copy(
+            homeCameraPosition
+        );
+
+        endTarget.copy(
+            homeTarget
+        );
+
+        moveStartTime=
+            performance.now();
+
+        currentPage="home";
+
+        controls.enabled=false;
+
+        document.getElementById(
+            "backButton"
+        ).style.display="none";
+
+        document.getElementById(
+            "nextButton"
+        ).style.display="none";
+    }
+);
+
+// ======================================================
+// RESIZE
+// ======================================================
 addEventListener("resize",()=>{
-    camera.aspect=innerWidth/innerHeight;
+    camera.aspect=
+        innerWidth/innerHeight;
+
     camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth,innerHeight);
-    renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+
+    renderer.setSize(
+        innerWidth,
+        innerHeight
+    );
+
+    renderer.setPixelRatio(
+        Math.min(devicePixelRatio,2)
+    );
 });
 
+// ======================================================
+// ANIMATION
+// ======================================================
 function animate(){
-    requestAnimationFrame(animate);
+
+    requestAnimationFrame(
+        animate
+    );
 
     if(movingCamera){
-        const elapsed=performance.now()-moveStartTime;
+
+        const elapsed=
+            performance.now()-
+            moveStartTime;
+
         const duration=1000;
-        let t=Math.min(elapsed/duration,1);
+
+        let t=Math.min(
+            elapsed/duration,
+            1
+        );
+
         t=t*t*(3-2*t);
 
-        camera.position.lerpVectors(startCamera,endCamera,t);
-        controls.target.lerpVectors(startTarget,endTarget,t);
-        camera.lookAt(controls.target);
+        camera.position.lerpVectors(
+            startCamera,
+            endCamera,
+            t
+        );
+
+        controls.target.lerpVectors(
+            startTarget,
+            endTarget,
+            t
+        );
+
+        camera.lookAt(
+            controls.target
+        );
 
         if(t>=1){
+
             movingCamera=false;
+
             controls.enabled=true;
         }
     }
 
     controls.update();
-    renderer.render(scene,camera);
+
+    renderer.render(
+        scene,
+        camera
+    );
 }
 
 animate();

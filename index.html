@@ -207,6 +207,17 @@
 
 
     /* =========================
+       VERTEX SHADER TIME
+    ========================= */
+
+    const clock = new THREE.Clock();
+
+    const shaderTime = {
+      value: 0
+    };
+
+
+    /* =========================
        GLB
     ========================= */
 
@@ -234,6 +245,40 @@
           }
 
         });
+
+
+        /* =========================
+           AWNING VERTEX SHADER
+        ========================= */
+
+        const awning =
+          bakery.getObjectByName("Cube.041");
+
+
+        console.log(
+          "Awning Cube.041:",
+          awning
+        );
+
+
+        if (awning) {
+
+          if (awning.isMesh) {
+
+            addVertexAnimation(
+              awning
+            );
+
+          }
+
+        }
+        else {
+
+          console.log(
+            "ไม่พบ Cube.041"
+          );
+
+        }
 
 
         /* =========================
@@ -343,6 +388,72 @@
 
       }
     );
+
+
+    /* =========================
+       ADD VERTEX ANIMATION
+    ========================= */
+
+    function addVertexAnimation(mesh) {
+
+      /* Clone material
+         เพื่อไม่กระทบ Object อื่น */
+
+      mesh.material =
+        mesh.material.clone();
+
+
+      mesh.material.onBeforeCompile =
+        function(shader) {
+
+          shader.uniforms.uTime =
+            shaderTime;
+
+
+          /* =========================
+             VERTEX SHADER
+          ========================= */
+
+          shader.vertexShader =
+            "uniform float uTime;\n" +
+            shader.vertexShader;
+
+
+          shader.vertexShader =
+            shader.vertexShader.replace(
+
+              "#include <begin_vertex>",
+
+              `
+              #include <begin_vertex>
+
+              float wave =
+                sin(
+                  transformed.x * 5.0
+                  + uTime * 2.0
+                );
+
+              transformed.z +=
+                wave * 0.08;
+              `
+            );
+
+
+          mesh.userData.shader =
+            shader;
+
+        };
+
+
+      mesh.material.needsUpdate =
+        true;
+
+
+      console.log(
+        "Vertex Shader ทำงานกับ Cube.041 แล้ว!"
+      );
+
+    }
 
 
     /* =========================
@@ -851,6 +962,14 @@
       requestAnimationFrame(
         animate
       );
+
+
+      /* =========================
+         UPDATE VERTEX SHADER TIME
+      ========================= */
+
+      shaderTime.value =
+        clock.getElapsedTime();
 
 
       if (movingCamera) {

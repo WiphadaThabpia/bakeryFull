@@ -2,12 +2,17 @@
 <html lang="th">
 
 <head>
+
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
 
   <title>Bakery 3D</title>
 
+
   <style>
+
     html, body {
       height: 100%;
       margin: 0;
@@ -18,9 +23,15 @@
       display: block;
     }
 
-    /* ปุ่มย้อนกลับ */
+
+    /* =========================
+       ปุ่มย้อนกลับ
+       ========================= */
+
     #backButton {
+
       position: fixed;
+
       top: 25px;
       left: 25px;
 
@@ -30,24 +41,74 @@
       border-radius: 12px;
 
       background: white;
+
       color: #5b4038;
 
       font-size: 18px;
+
       font-family: sans-serif;
 
       cursor: pointer;
 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      box-shadow:
+        0 4px 12px
+        rgba(0,0,0,0.2);
 
       display: none;
 
       z-index: 10;
+
     }
 
-    #backButton:hover {
-      transform: scale(1.05);
+
+    /* =========================
+       ปุ่มเมนูถัดไป
+       ========================= */
+
+    #nextButton {
+
+      position: fixed;
+
+      right: 25px;
+      bottom: 25px;
+
+      padding: 12px 20px;
+
+      border: none;
+      border-radius: 12px;
+
+      background: white;
+
+      color: #5b4038;
+
+      font-size: 18px;
+
+      font-family: sans-serif;
+
+      cursor: pointer;
+
+      box-shadow:
+        0 4px 12px
+        rgba(0,0,0,0.2);
+
+      display: none;
+
+      z-index: 10;
+
     }
+
+
+    #backButton:hover,
+    #nextButton:hover {
+
+      transform: scale(1.05);
+
+    }
+
   </style>
+
+
+  <!-- THREE.JS -->
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 
@@ -60,659 +121,1288 @@
 
 <body>
 
-<button id="backButton">← กลับ</button>
+
+<!-- =========================
+     BUTTONS
+     ========================= -->
+
+<button id="backButton">
+  ← กลับ
+</button>
+
+
+<button id="nextButton">
+  Menu Donut →
+</button>
+
 
 
 <script>
 
-  // =========================
-  // SCENE
-  // =========================
 
-  const scene = new THREE.Scene();
+// ======================================================
+// SCENE
+// ======================================================
 
-  scene.background = new THREE.Color(0xFFF4E3);
+const scene = new THREE.Scene();
+
+scene.background =
+  new THREE.Color(0xFFF4E3);
 
 
-  // =========================
-  // CAMERA
-  // =========================
 
-  const camera = new THREE.PerspectiveCamera(
+// ======================================================
+// CAMERA
+// ======================================================
+
+const camera =
+  new THREE.PerspectiveCamera(
+
     50,
+
     innerWidth / innerHeight,
+
     0.1,
+
     100
+
   );
 
 
-  // =========================
-  // RENDERER
-  // =========================
 
-  const renderer = new THREE.WebGLRenderer({
+// ======================================================
+// RENDERER
+// ======================================================
+
+const renderer =
+  new THREE.WebGLRenderer({
+
     antialias: true
+
   });
 
-  renderer.setSize(
-    innerWidth,
-    innerHeight
-  );
 
-  renderer.setPixelRatio(
-    Math.min(devicePixelRatio, 2)
-  );
+renderer.setSize(
 
-  renderer.outputEncoding = THREE.sRGBEncoding;
+  innerWidth,
+  innerHeight
 
-  document.body.appendChild(
-    renderer.domElement
-  );
+);
 
 
-  // =========================
-  // CONTROLS
-  // =========================
+renderer.setPixelRatio(
 
-  const controls = new THREE.OrbitControls(
+  Math.min(
+    devicePixelRatio,
+    2
+  )
+
+);
+
+
+renderer.outputEncoding =
+  THREE.sRGBEncoding;
+
+
+renderer.shadowMap.enabled =
+  true;
+
+
+document.body.appendChild(
+  renderer.domElement
+);
+
+
+
+// ======================================================
+// ORBIT CONTROLS
+// ======================================================
+
+const controls =
+  new THREE.OrbitControls(
+
     camera,
     renderer.domElement
+
   );
 
-  controls.enableDamping = true;
 
-  controls.dampingFactor = 0.05;
-
-  controls.minDistance = 3;
-
-  controls.maxDistance = 30;
+controls.enableDamping =
+  true;
 
 
-  // =========================
-  // LIGHT
-  // =========================
-
-  // แสงหลัก
-  const ambientLight =
-    new THREE.AmbientLight(
-      0xffffff,
-      0.55
-    );
-
-  scene.add(ambientLight);
+controls.dampingFactor =
+  0.05;
 
 
-  // แสงด้านหน้า
-  const frontLight =
-    new THREE.DirectionalLight(
-      0xffffff,
-      0.45
-    );
+controls.minDistance =
+  3;
 
-  frontLight.position.set(
-    5,
-    5,
-    10
+
+controls.maxDistance =
+  30;
+
+
+
+// ======================================================
+// LIGHT
+// ======================================================
+
+
+// แสงพื้นฐาน
+
+const ambientLight =
+  new THREE.AmbientLight(
+
+    0xffffff,
+
+    0.45
+
   );
 
-  scene.add(frontLight);
+scene.add(
+  ambientLight
+);
 
 
-  // แสงช่วยด้านข้าง
-  const sideLight =
-    new THREE.DirectionalLight(
-      0xffe4d2,
-      0.25
-    );
 
-  sideLight.position.set(
-    -5,
-    3,
-    5
+// แสงหลักจากด้านหน้า
+
+const mainLight =
+  new THREE.SpotLight(
+
+    0xffffff,
+
+    2.5
+
   );
 
-  scene.add(sideLight);
+
+mainLight.position.set(
+
+  8,
+  10,
+  12
+
+);
 
 
-  // =========================
-  // LOAD BAKERY
-  // =========================
-
-  const loader =
-    new THREE.GLTFLoader();
+mainLight.angle =
+  Math.PI / 5;
 
 
-  let bakery;
-
-  // ตำแหน่งกล้องเดิม
-  let homeCameraPosition =
-    new THREE.Vector3();
-
-  let homeTarget =
-    new THREE.Vector3();
+mainLight.penumbra =
+  0.4;
 
 
-  loader.load(
-
-    'Bekery.glb',
-
-    function(gltf) {
-
-      bakery = gltf.scene;
-
-      scene.add(bakery);
+mainLight.decay =
+  1;
 
 
-      // =========================
-      // หาขนาดโมเดล
-      // =========================
-
-      const box =
-        new THREE.Box3()
-          .setFromObject(bakery);
+mainLight.distance =
+  40;
 
 
-      const center =
-        new THREE.Vector3();
-
-      box.getCenter(center);
+mainLight.castShadow =
+  true;
 
 
-      const size =
-        new THREE.Vector3();
-
-      box.getSize(size);
-
-
-      // =========================
-      // CAMERA HOME
-      // =========================
-
-      camera.position.set(
-
-        box.max.x + size.x * 1.6,
-
-        center.y,
-
-        center.z + size.z * 0.15
-
-      );
+scene.add(
+  mainLight
+);
 
 
-      controls.target.set(
 
-        center.x,
-        center.y,
-        center.z
+// จุดที่แสงหลักส่อง
 
-      );
+const lightTarget =
+  new THREE.Object3D();
 
 
-      camera.lookAt(
-        controls.target
-      );
+lightTarget.position.set(
+
+  0,
+  0,
+  2
+
+);
 
 
-      controls.update();
+scene.add(
+  lightTarget
+);
 
 
-      // จำตำแหน่งเดิมไว้
-      homeCameraPosition.copy(
-        camera.position
-      );
-
-      homeTarget.copy(
-        controls.target
-      );
+mainLight.target =
+  lightTarget;
 
 
-      console.log('Bakery loaded');
 
-      console.log('Size:', size);
+// แสงด้านซ้าย
 
-      console.log('Center:', center);
+const leftLight =
+  new THREE.SpotLight(
 
+    0xffffff,
 
-      // เช็กชื่อ Object
-      console.log(
-        'About:',
-        bakery.getObjectByName('BtnAboutme.002')
-      );
+    1.5
 
-      console.log(
-        'Menu:',
-        bakery.getObjectByName('BtnMenu')
-      );
-
-      console.log(
-        'Portfolio:',
-        bakery.getObjectByName('BtnPortfolio')
-      );
-
-    },
+  );
 
 
-    function(xhr) {
+leftLight.position.set(
 
-      if (xhr.total > 0) {
+  -8,
+  6,
+  8
 
-        console.log(
+);
 
-          'Loading:',
-          (xhr.loaded / xhr.total * 100)
-            .toFixed(0) + '%'
 
-        );
+leftLight.angle =
+  Math.PI / 4;
+
+
+leftLight.penumbra =
+  0.5;
+
+
+leftLight.distance =
+  35;
+
+
+scene.add(
+  leftLight
+);
+
+
+
+// แสงด้านหลัง
+
+const backLight =
+  new THREE.DirectionalLight(
+
+    0xffffff,
+
+    0.5
+
+  );
+
+
+backLight.position.set(
+
+  -5,
+  -5,
+  8
+
+);
+
+
+scene.add(
+  backLight
+);
+
+
+
+// ======================================================
+// LOAD BAKERY
+// ======================================================
+
+const loader =
+  new THREE.GLTFLoader();
+
+
+let bakery = null;
+
+
+
+// ======================================================
+// CAMERA HOME POSITION
+// ======================================================
+
+const homeCameraPosition =
+  new THREE.Vector3();
+
+
+const homeTarget =
+  new THREE.Vector3();
+
+
+
+// ======================================================
+// CURRENT PAGE
+// ======================================================
+
+let currentPage =
+  "home";
+
+
+
+// ======================================================
+// LOAD GLB
+// ======================================================
+
+loader.load(
+
+  'Bekery.glb',
+
+
+  function(gltf) {
+
+
+    bakery =
+      gltf.scene;
+
+
+    scene.add(
+      bakery
+    );
+
+
+
+    // --------------------------------
+    // เปิดเงาบนโมเดล
+    // --------------------------------
+
+    bakery.traverse(
+
+      function(object) {
+
+        if (object.isMesh) {
+
+          object.castShadow =
+            true;
+
+          object.receiveShadow =
+            true;
+
+        }
 
       }
 
-    },
+    );
 
 
-    function(error) {
 
-      console.error(
-        'โหลด Bekery.glb ไม่สำเร็จ',
-        error
+    // --------------------------------
+    // หาขนาดโมเดล
+    // --------------------------------
+
+    const box =
+      new THREE.Box3()
+        .setFromObject(
+          bakery
+        );
+
+
+    const center =
+      new THREE.Vector3();
+
+
+    box.getCenter(
+      center
+    );
+
+
+    const size =
+      new THREE.Vector3();
+
+
+    box.getSize(
+      size
+    );
+
+
+
+    // --------------------------------
+    // CAMERA HOME
+    // --------------------------------
+
+    camera.position.set(
+
+      box.max.x +
+      size.x * 1.6,
+
+      center.y,
+
+      center.z +
+      size.z * 0.15
+
+    );
+
+
+    controls.target.set(
+
+      center.x,
+      center.y,
+      center.z
+
+    );
+
+
+    camera.lookAt(
+      controls.target
+    );
+
+
+    controls.update();
+
+
+
+    // จำตำแหน่งเริ่มต้น
+
+    homeCameraPosition.copy(
+      camera.position
+    );
+
+
+    homeTarget.copy(
+      controls.target
+    );
+
+
+
+    console.log(
+      "Bakery loaded"
+    );
+
+
+    console.log(
+      "Size:",
+      size
+    );
+
+
+    console.log(
+      "Center:",
+      center
+    );
+
+
+
+    // ตรวจชื่อ Object
+
+    console.log(
+      "About:",
+      bakery.getObjectByName(
+        "BtnAboutme.002"
+      )
+    );
+
+
+    console.log(
+      "Menu:",
+      bakery.getObjectByName(
+        "BtnMenu"
+      )
+    );
+
+
+    console.log(
+      "Portfolio:",
+      bakery.getObjectByName(
+        "BtnPortfolio"
+      )
+    );
+
+
+    console.log(
+      "About Target:",
+      bakery.getObjectByName(
+        "Aboutme.001"
+      )
+    );
+
+
+    console.log(
+      "Menu Cake:",
+      bakery.getObjectByName(
+        "MenuCake"
+      )
+    );
+
+
+    console.log(
+      "Menu Donut:",
+      bakery.getObjectByName(
+        "MenuDonut"
+      )
+    );
+
+  },
+
+
+  // --------------------------------
+  // Loading
+  // --------------------------------
+
+  function(xhr) {
+
+    if (xhr.total > 0) {
+
+      console.log(
+
+        "Loading:",
+
+        (
+          xhr.loaded /
+          xhr.total *
+          100
+        ).toFixed(0) + "%"
+
       );
 
     }
 
+  },
+
+
+  // --------------------------------
+  // Error
+  // --------------------------------
+
+  function(error) {
+
+    console.error(
+
+      "โหลด Bekery.glb ไม่สำเร็จ",
+
+      error
+
+    );
+
+  }
+
+);
+
+
+
+// ======================================================
+// CAMERA MOVEMENT
+// ======================================================
+
+let movingCamera =
+  false;
+
+
+let moveStartTime =
+  0;
+
+
+const startCamera =
+  new THREE.Vector3();
+
+
+const startTarget =
+  new THREE.Vector3();
+
+
+const endCamera =
+  new THREE.Vector3();
+
+
+const endTarget =
+  new THREE.Vector3();
+
+
+
+function moveCameraTo(
+
+  targetObject,
+  type
+
+) {
+
+
+  if (!targetObject) {
+
+    console.log(
+      "ไม่พบเป้าหมาย:",
+      type
+    );
+
+    return;
+
+  }
+
+
+
+  // ตำแหน่ง Object จริงในโลก
+
+  const targetPosition =
+    new THREE.Vector3();
+
+
+  targetObject.getWorldPosition(
+    targetPosition
   );
 
 
-  // =========================
-  // CAMERA MOVE
-  // =========================
 
-  let movingCamera = false;
+  // จุดที่กล้องมอง
 
-  let moveStartTime = 0;
-
-  let startCamera =
-    new THREE.Vector3();
-
-  let startTarget =
-    new THREE.Vector3();
-
-  let endCamera =
-    new THREE.Vector3();
-
-  let endTarget =
-    new THREE.Vector3();
+  endTarget.copy(
+    targetPosition
+  );
 
 
-  function moveCameraTo(
-    targetObject,
-    type
+
+  // ==================================================
+  // ABOUT ME
+  // ==================================================
+
+  if (
+    type === "about"
   ) {
 
-    if (!targetObject) {
+    endCamera.set(
 
-      console.log(
-        'ไม่พบเป้าหมาย:',
-        type
+      targetPosition.x + 2.5,
+
+      targetPosition.y,
+
+      targetPosition.z + 0.3
+
+    );
+
+
+    currentPage =
+      "about";
+
+  }
+
+
+
+  // ==================================================
+  // MENU CAKE
+  // ==================================================
+
+  if (
+    type === "menuCake"
+  ) {
+
+    endCamera.set(
+
+      targetPosition.x + 2.5,
+
+      targetPosition.y,
+
+      targetPosition.z + 0.4
+
+    );
+
+
+    currentPage =
+      "menuCake";
+
+  }
+
+
+
+  // ==================================================
+  // MENU DONUT
+  // ==================================================
+
+  if (
+    type === "menuDonut"
+  ) {
+
+    endCamera.set(
+
+      targetPosition.x + 2.5,
+
+      targetPosition.y,
+
+      targetPosition.z + 0.4
+
+    );
+
+
+    currentPage =
+      "menuDonut";
+
+  }
+
+
+
+  // ==================================================
+  // START MOVEMENT
+  // ==================================================
+
+  startCamera.copy(
+    camera.position
+  );
+
+
+  startTarget.copy(
+    controls.target
+  );
+
+
+  moveStartTime =
+    performance.now();
+
+
+  movingCamera =
+    true;
+
+
+  controls.enabled =
+    false;
+
+
+
+  // แสดงปุ่มกลับ
+
+  document.getElementById(
+    "backButton"
+  ).style.display =
+    "block";
+
+
+
+  // แสดงปุ่มไป Donut
+  // เฉพาะตอนอยู่ MenuCake
+
+  if (
+    type === "menuCake"
+  ) {
+
+    document.getElementById(
+      "nextButton"
+    ).style.display =
+      "block";
+
+  }
+
+  else {
+
+    document.getElementById(
+      "nextButton"
+    ).style.display =
+      "none";
+
+  }
+
+}
+
+
+
+// ======================================================
+// RAYCASTER
+// ======================================================
+
+const raycaster =
+  new THREE.Raycaster();
+
+
+const mouse =
+  new THREE.Vector2();
+
+
+
+renderer.domElement.addEventListener(
+
+  "click",
+
+  function(event) {
+
+
+    if (!bakery) {
+      return;
+    }
+
+
+
+    // --------------------------------
+    // Mouse position
+    // --------------------------------
+
+    mouse.x =
+      (
+        event.clientX /
+        innerWidth
+      ) * 2 - 1;
+
+
+    mouse.y =
+      -(
+        event.clientY /
+        innerHeight
+      ) * 2 + 1;
+
+
+
+    raycaster.setFromCamera(
+
+      mouse,
+      camera
+
+    );
+
+
+
+    // --------------------------------
+    // หา object ที่ถูกคลิก
+    // --------------------------------
+
+    const hits =
+      raycaster.intersectObjects(
+
+        bakery.children,
+
+        true
+
       );
+
+
+
+    if (
+      hits.length === 0
+    ) {
 
       return;
 
     }
 
 
-    // ตำแหน่งของ Object ในโลก
-    const targetPosition =
-      new THREE.Vector3();
 
-    targetObject.getWorldPosition(
-      targetPosition
+    let clicked =
+      hits[0].object;
+
+
+
+    // --------------------------------
+    // หา parent ที่เป็นปุ่ม
+    // --------------------------------
+
+    while (
+
+      clicked &&
+      clicked.parent &&
+      clicked.parent !== bakery
+
+    ) {
+
+      if (
+
+        clicked.name ===
+        "BtnAboutme.002" ||
+
+        clicked.name ===
+        "BtnMenu" ||
+
+        clicked.name ===
+        "BtnPortfolio"
+
+      ) {
+
+        break;
+
+      }
+
+
+      clicked =
+        clicked.parent;
+
+    }
+
+
+
+    console.log(
+      "Clicked:",
+      clicked.name
     );
 
 
-    // จุดที่กล้องจะมอง
-    endTarget.copy(
-      targetPosition
-    );
+
+    // ==================================================
+    // ABOUT ME
+    // ==================================================
+
+    if (
+
+      clicked.name ===
+      "BtnAboutme.002"
+
+    ) {
 
 
-    // =========================
-    // About Me
-    // =========================
+      const aboutTarget =
+        bakery.getObjectByName(
 
-    if (type === 'about') {
+          "Aboutme.001"
 
-      // รูป About Me หันทาง +X
-      endCamera.set(
+        );
 
-        targetPosition.x + 2.5,
 
-        targetPosition.y,
+      moveCameraTo(
 
-        targetPosition.z + 0.3
+        aboutTarget,
+
+        "about"
 
       );
 
     }
 
 
-    // =========================
-    // Menu
-    // =========================
 
-    if (type === 'menu') {
+    // ==================================================
+    // MENU
+    // ==================================================
 
-      // เมนูหันทาง -Y
-      endCamera.set(
+    else if (
 
-        targetPosition.x,
+      clicked.name ===
+      "BtnMenu"
 
-        targetPosition.y + 3,
+    ) {
 
-        targetPosition.z + 0.4
+
+      const menuTarget =
+        bakery.getObjectByName(
+
+          "MenuCake"
+
+        );
+
+
+      moveCameraTo(
+
+        menuTarget,
+
+        "menuCake"
 
       );
 
     }
 
 
-    // เริ่ม Animation
+
+    // ==================================================
+    // PORTFOLIO
+    // ==================================================
+
+    else if (
+
+      clicked.name ===
+      "BtnPortfolio"
+
+    ) {
+
+
+      // ==========================================
+      // ใส่ URL เว็บไซต์ของเธอตรงนี้
+      // ==========================================
+
+      window.open(
+
+        "https://example.com",
+
+        "_blank"
+
+      );
+
+    }
+
+  }
+
+);
+
+
+
+// ======================================================
+// NEXT MENU DONUT
+// ======================================================
+
+document.getElementById(
+  "nextButton"
+).addEventListener(
+
+  "click",
+
+  function() {
+
+
+    const donutTarget =
+      bakery.getObjectByName(
+
+        "MenuDonut"
+
+      );
+
+
+    moveCameraTo(
+
+      donutTarget,
+
+      "menuDonut"
+
+    );
+
+  }
+
+);
+
+
+
+// ======================================================
+// BACK BUTTON
+// ======================================================
+
+document.getElementById(
+  "backButton"
+).addEventListener(
+
+  "click",
+
+  function() {
+
+
+    // --------------------------------
+    // ถ้าอยู่ MenuDonut
+    // กลับไป MenuCake
+    // --------------------------------
+
+    if (
+      currentPage ===
+      "menuDonut"
+    ) {
+
+
+      const cakeTarget =
+        bakery.getObjectByName(
+
+          "MenuCake"
+
+        );
+
+
+      moveCameraTo(
+
+        cakeTarget,
+
+        "menuCake"
+
+      );
+
+
+      return;
+
+    }
+
+
+
+    // --------------------------------
+    // หน้าอื่นกลับหน้าหลัก
+    // --------------------------------
+
+    movingCamera =
+      true;
+
+
     startCamera.copy(
       camera.position
     );
+
 
     startTarget.copy(
       controls.target
     );
 
+
+    endCamera.copy(
+      homeCameraPosition
+    );
+
+
+    endTarget.copy(
+      homeTarget
+    );
+
+
     moveStartTime =
       performance.now();
 
-    movingCamera = true;
 
-    controls.enabled = false;
+
+    currentPage =
+      "home";
+
+
+    controls.enabled =
+      false;
+
+
 
     document.getElementById(
-      'backButton'
-    ).style.display = 'block';
+      "backButton"
+    ).style.display =
+      "none";
+
+
+    document.getElementById(
+      "nextButton"
+    ).style.display =
+      "none";
 
   }
 
+);
 
-  // =========================
-  // RAYCASTER
-  // =========================
 
-  const raycaster =
-    new THREE.Raycaster();
 
-  const mouse =
-    new THREE.Vector2();
+// ======================================================
+// RESIZE
+// ======================================================
 
+addEventListener(
 
-  renderer.domElement.addEventListener(
-    'click',
-    function(event) {
+  "resize",
 
-      if (!bakery) return;
+  () => {
 
 
-      mouse.x =
-        (event.clientX / innerWidth) * 2 - 1;
+    camera.aspect =
+      innerWidth /
+      innerHeight;
 
-      mouse.y =
-        -(event.clientY / innerHeight) * 2 + 1;
 
+    camera.updateProjectionMatrix();
 
-      raycaster.setFromCamera(
-        mouse,
-        camera
-      );
 
+    renderer.setSize(
 
-      const hits =
-        raycaster.intersectObjects(
-          bakery.children,
-          true
-        );
+      innerWidth,
+      innerHeight
 
-
-      if (hits.length === 0) {
-        return;
-      }
-
-
-      // Object ที่ถูกคลิก
-      let clicked =
-        hits[0].object;
-
-
-      // หา Object แม่ที่เป็นปุ่ม
-      while (
-        clicked &&
-        clicked.parent &&
-        clicked.parent !== bakery
-      ) {
-
-        if (
-          clicked.name === 'BtnAboutme.002' ||
-          clicked.name === 'BtnMenu' ||
-          clicked.name === 'BtnPortfolio'
-        ) {
-          break;
-        }
-
-        clicked =
-          clicked.parent;
-
-      }
-
-
-      // =========================
-      // ABOUT ME
-      // =========================
-
-      if (
-        clicked.name ===
-        'BtnAboutme.002'
-      ) {
-
-        const aboutTarget =
-          bakery.getObjectByName(
-            'Aboutme.001'
-          );
-
-        moveCameraTo(
-          aboutTarget,
-          'about'
-        );
-
-      }
-
-
-      // =========================
-      // MENU
-      // =========================
-
-      else if (
-        clicked.name ===
-        'BtnMenu'
-      ) {
-
-        const menuTarget =
-          bakery.getObjectByName(
-            'MenuCake'
-          );
-
-        moveCameraTo(
-          menuTarget,
-          'menu'
-        );
-
-      }
-
-
-      // =========================
-      // PORTFOLIO
-      // =========================
-
-      else if (
-        clicked.name ===
-        'BtnPortfolio'
-      ) {
-
-        // =================================
-        // เปลี่ยนลิงก์ตรงนี้เป็นเว็บของตัวเอง
-        // =================================
-
-        window.open(
-          'https://wiphadathabpia.github.io/portfolio/',
-          '_blank'
-        );
-
-      }
-
-    }
-  );
-
-
-  // =========================
-  // BACK BUTTON
-  // =========================
-
-  document.getElementById(
-    'backButton'
-  ).addEventListener(
-    'click',
-    function() {
-
-      movingCamera = true;
-
-      startCamera.copy(
-        camera.position
-      );
-
-      startTarget.copy(
-        controls.target
-      );
-
-      endCamera.copy(
-        homeCameraPosition
-      );
-
-      endTarget.copy(
-        homeTarget
-      );
-
-      moveStartTime =
-        performance.now();
-
-      controls.enabled = false;
-
-      this.style.display = 'none';
-
-    }
-  );
-
-
-  // =========================
-  // RESIZE
-  // =========================
-
-  addEventListener(
-    'resize',
-    () => {
-
-      camera.aspect =
-        innerWidth / innerHeight;
-
-      camera.updateProjectionMatrix();
-
-      renderer.setSize(
-        innerWidth,
-        innerHeight
-      );
-
-      renderer.setPixelRatio(
-        Math.min(devicePixelRatio, 2)
-      );
-
-    }
-  );
-
-
-  // =========================
-  // ANIMATION
-  // =========================
-
-  function animate() {
-
-    requestAnimationFrame(
-      animate
     );
 
 
-    // กล้องกำลังเคลื่อน
-    if (movingCamera) {
+    renderer.setPixelRatio(
 
-      const elapsed =
-        performance.now() -
-        moveStartTime;
+      Math.min(
+        devicePixelRatio,
+        2
+      )
 
-      const duration = 1000;
-
-      let t =
-        Math.min(
-          elapsed / duration,
-          1
-        );
-
-
-      // ทำให้เคลื่อนนุ่ม
-      t =
-        t * t * (3 - 2 * t);
-
-
-      camera.position.lerpVectors(
-        startCamera,
-        endCamera,
-        t
-      );
-
-
-      controls.target.lerpVectors(
-        startTarget,
-        endTarget,
-        t
-      );
-
-
-      camera.lookAt(
-        controls.target
-      );
-
-
-      if (t >= 1) {
-
-        movingCamera = false;
-
-        controls.enabled = true;
-
-      }
-
-    }
-
-
-    controls.update();
-
-
-    renderer.render(
-      scene,
-      camera
     );
 
   }
 
+);
 
-  animate();
+
+
+// ======================================================
+// ANIMATION
+// ======================================================
+
+function animate() {
+
+
+  requestAnimationFrame(
+    animate
+  );
+
+
+
+  // --------------------------------
+  // Camera movement
+  // --------------------------------
+
+  if (
+    movingCamera
+  ) {
+
+
+    const elapsed =
+      performance.now() -
+      moveStartTime;
+
+
+    const duration =
+      1000;
+
+
+    let t =
+      Math.min(
+
+        elapsed /
+        duration,
+
+        1
+
+      );
+
+
+    // movement นุ่ม
+
+    t =
+      t *
+      t *
+      (3 - 2 * t);
+
+
+
+    camera.position.lerpVectors(
+
+      startCamera,
+      endCamera,
+      t
+
+    );
+
+
+    controls.target.lerpVectors(
+
+      startTarget,
+      endTarget,
+      t
+
+    );
+
+
+    camera.lookAt(
+      controls.target
+    );
+
+
+
+    if (
+      t >= 1
+    ) {
+
+      movingCamera =
+        false;
+
+
+      controls.enabled =
+        true;
+
+    }
+
+  }
+
+
+
+  controls.update();
+
+
+
+  renderer.render(
+
+    scene,
+    camera
+
+  );
+
+}
+
+
+animate();
+
 
 </script>
 

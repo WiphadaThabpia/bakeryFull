@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -67,6 +68,9 @@ let homeTarget=new THREE.Vector3();
 let currentPage="home";
 let moving=false;
 
+const backButton=document.getElementById("backButton");
+const nextButton=document.getElementById("nextButton");
+
 loader.load("Bekery.glb",function(gltf){
     bakery=gltf.scene;
     scene.add(bakery);
@@ -82,11 +86,13 @@ loader.load("Bekery.glb",function(gltf){
     const center=box.getCenter(new THREE.Vector3());
     const size=box.getSize(new THREE.Vector3());
 
+    // มุมกล้องเริ่มต้นเดิม
     camera.position.set(
         box.max.x+size.x*1.6,
         center.y,
         center.z+size.z*0.15
     );
+
     controls.target.copy(center);
 
     homeCameraPosition.copy(camera.position);
@@ -102,46 +108,90 @@ function findObject(name){
     return result;
 }
 
-function moveCameraTo(name){
-    const target=findObject(name);
+/* กล้องสำหรับ About Me
+   ให้กล้องอยู่ด้านหน้าป้ายและหันเข้าหาป้าย */
+function moveToAbout(){
+    const target=findObject("Aboutme.001");
     if(!target){
-        console.log("หาไม่เจอ:",name);
+        console.log("หา Aboutme.001 ไม่เจอ");
         return;
     }
 
     const targetPosition=new THREE.Vector3();
     target.getWorldPosition(targetPosition);
 
+    const box=new THREE.Box3().setFromObject(target);
+    const size=box.getSize(new THREE.Vector3());
+
+    // วางกล้องด้านหน้าป้าย
+    const cameraPosition=new THREE.Vector3(
+        targetPosition.x+size.x*2.5,
+        targetPosition.y+size.y*0.3,
+        targetPosition.z+size.z*0.3
+    );
+
+    animateCamera(cameraPosition,targetPosition);
+}
+
+/* กล้อง Menu
+   ใช้มุมเดิมของตำแหน่ง Menu ไม่หมุนเพิ่ม */
+function moveToMenu(name){
+    const target=findObject(name);
+    if(!target){
+        console.log("หา "+name+" ไม่เจอ");
+        return;
+    }
+
+    const targetPosition=new THREE.Vector3();
+    target.getWorldPosition(targetPosition);
+
+    const currentDirection=new THREE.Vector3();
+    camera.getWorldDirection(currentDirection);
+
+    // ใช้ทิศทางกล้องเดิม
+    const distance=6;
+    const cameraPosition=targetPosition.clone().sub(
+        currentDirection.multiplyScalar(distance)
+    );
+
+    animateCamera(cameraPosition,targetPosition);
+}
+
+function animateCamera(endPosition,endTarget){
     const startPosition=camera.position.clone();
     const startTarget=controls.target.clone();
 
-    // ให้กล้องอยู่ด้านหน้าของจุดที่เลือก
-    const endPosition=new THREE.Vector3(
-        targetPosition.x+2.5,
-        targetPosition.y+0.5,
-        targetPosition.z+0.4
-    );
-
-    const endTarget=targetPosition.clone();
     moving=true;
+
     const startTime=performance.now();
     const duration=1000;
 
-    function animateCamera(time){
+    function animation(time){
         const t=Math.min((time-startTime)/duration,1);
         const smooth=t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
 
-        camera.position.lerpVectors(startPosition,endPosition,smooth);
-        controls.target.lerpVectors(startTarget,endTarget,smooth);
+        camera.position.lerpVectors(
+            startPosition,
+            endPosition,
+            smooth
+        );
+
+        controls.target.lerpVectors(
+            startTarget,
+            endTarget,
+            smooth
+        );
+
         controls.update();
 
         if(t<1){
-            requestAnimationFrame(animateCamera);
+            requestAnimationFrame(animation);
         }else{
             moving=false;
         }
     }
-    requestAnimationFrame(animateCamera);
+
+    requestAnimationFrame(animation);
 }
 
 const raycaster=new THREE.Raycaster();
@@ -164,31 +214,48 @@ renderer.domElement.addEventListener("click",function(event){
     console.log("กดโดน:",obj.name);
 
     while(obj){
+
         console.log("กำลังตรวจ:",obj.name);
 
         // ABOUT ME
-        if(obj.name==="BtnAboutme.002"||obj.name.toLowerCase().includes("about")){
+        if(
+            obj.name==="BtnAboutme.002"||
+            obj.name.toLowerCase().includes("about")
+        ){
             console.log("เจอ ABOUT ME");
+
             currentPage="about";
-            moveCameraTo("Aboutme.001");
+            moveToAbout();
+
             backButton.style.display="block";
             nextButton.style.display="none";
+
             return;
         }
 
         // MENU
-        if(obj.name==="BtnMenu"||obj.name.toLowerCase()==="menu"){
+        if(
+            obj.name==="BtnMenu"||
+            obj.name.toLowerCase()==="menu"
+        ){
             console.log("เจอ MENU");
+
             currentPage="menuCake";
-            moveCameraTo("MenuCake");
+            moveToMenu("MenuCake");
+
             backButton.style.display="block";
             nextButton.style.display="block";
+
             return;
         }
 
         // PORTFOLIO
-        if(obj.name==="BtnPortfolio"||obj.name.toLowerCase().includes("portfolio")){
+        if(
+            obj.name==="BtnPortfolio"||
+            obj.name.toLowerCase().includes("portfolio")
+        ){
             console.log("เจอ PORTFOLIO");
+
             window.open("https://example.com","_blank");
             return;
         }
@@ -197,23 +264,24 @@ renderer.domElement.addEventListener("click",function(event){
     }
 });
 
-const backButton=document.getElementById("backButton");
-const nextButton=document.getElementById("nextButton");
-
 backButton.addEventListener("click",function(){
     if(moving)return;
 
+    // MenuDonut → MenuCake
     if(currentPage==="menuDonut"){
         currentPage="menuCake";
-        moveCameraTo("MenuCake");
+        moveToMenu("MenuCake");
         nextButton.style.display="block";
         return;
     }
 
+    // กลับหน้าร้าน
     currentPage="home";
+
     camera.position.copy(homeCameraPosition);
     controls.target.copy(homeTarget);
     controls.update();
+
     backButton.style.display="none";
     nextButton.style.display="none";
 });
@@ -223,7 +291,9 @@ nextButton.addEventListener("click",function(){
 
     if(currentPage==="menuCake"){
         currentPage="menuDonut";
-        moveCameraTo("MenuDonut");
+
+        moveToMenu("MenuDonut");
+
         nextButton.style.display="none";
     }
 });
@@ -239,7 +309,9 @@ function animate(){
     controls.update();
     renderer.render(scene,camera);
 }
+
 animate();
 </script>
 </body>
 </html>
+```

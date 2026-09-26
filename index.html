@@ -216,11 +216,6 @@
       value: 0
     };
 
-
-    /* =========================
-       CLOTH SHADERS
-    ========================= */
-
     const curtainShaders = [];
 
 
@@ -241,11 +236,6 @@
 
         scene.add(bakery);
 
-
-        /* =========================
-           SHADOW
-        ========================= */
-
         bakery.traverse(function(object) {
 
           if (object.isMesh) {
@@ -259,24 +249,34 @@
         });
 
 
-        /* =================================================
-           PLANE.001 CLOTH VERTEX SHADER
-        ================================================= */
+        /* =========================
+           PLANE.001 VERTEX SHADER
+        ========================= */
 
         bakery.traverse(function(node) {
 
           const cleanName =
             node.name.replace(/\./g, "");
 
-
           if (
             cleanName === "Plane001" &&
             node.material
           ) {
 
+            console.log(
+              "FOUND CLOTH:",
+              node.name
+            );
+
+            /* Clone material
+               เพื่อไม่ให้กระทบ Texture เดิม */
+
+            node.material =
+              node.material.clone();
+
+
             const geometry =
               node.geometry;
-
 
             geometry.computeBoundingBox();
 
@@ -284,15 +284,8 @@
             const minY =
               geometry.boundingBox.min.y;
 
-
             const maxY =
               geometry.boundingBox.max.y;
-
-
-            console.log(
-              "FOUND CLOTH:",
-              node.name
-            );
 
 
             console.log(
@@ -300,12 +293,10 @@
               geometry.attributes.position.count
             );
 
-
             console.log(
               "minY:",
               minY
             );
-
 
             console.log(
               "maxY:",
@@ -316,42 +307,27 @@
             node.material.onBeforeCompile =
               function(shader) {
 
-
-                /* =========================
-                   UNIFORMS
-                ========================= */
-
                 shader.uniforms.uTime = {
                   value: 0
                 };
 
-
                 shader.uniforms.uMinY = {
                   value: minY
                 };
-
 
                 shader.uniforms.uMaxY = {
                   value: maxY
                 };
 
 
-                /* =========================
-                   ADD UNIFORMS
-                ========================= */
-
-                shader.vertexShader = `
-
+                shader.vertexShader =
+                  `
                   uniform float uTime;
                   uniform float uMinY;
                   uniform float uMaxY;
+                  ` +
+                  shader.vertexShader;
 
-                ` + shader.vertexShader;
-
-
-                /* =========================
-                   VERTEX SHADER
-                ========================= */
 
                 shader.vertexShader =
                   shader.vertexShader.replace(
@@ -359,17 +335,11 @@
                     "#include <begin_vertex>",
 
                     `
-
                     #include <begin_vertex>
-
 
                     float t = uTime;
 
-
-                    /* =========================
-                       0 = ล่างสุด
-                       1 = บนสุด
-                    ========================= */
+                    /* 0 = ล่างสุด / 1 = บนสุด */
 
                     float height01 =
                       clamp(
@@ -380,21 +350,16 @@
                       );
 
 
-                    /* =========================
-                       ด้านล่างพริ้วมากกว่า
-                    ========================= */
+                    /* ด้านล่างพริ้วมากกว่าด้านบน */
 
                     float bottom =
                       1.0 - height01;
-
 
                     float movement =
                       pow(bottom, 1.6);
 
 
-                    /* =========================
-                       คลื่นใหญ่
-                    ========================= */
+                    /* คลื่นใหญ่ */
 
                     float wave1 =
                       sin(
@@ -404,9 +369,7 @@
                       );
 
 
-                    /* =========================
-                       คลื่นรอง
-                    ========================= */
+                    /* คลื่นรอง */
 
                     float wave2 =
                       sin(
@@ -416,9 +379,7 @@
                       );
 
 
-                    /* =========================
-                       คลื่นละเอียด
-                    ========================= */
+                    /* คลื่นละเอียด */
 
                     float wave3 =
                       sin(
@@ -428,9 +389,7 @@
                       );
 
 
-                    /* =========================
-                       รวมคลื่น
-                    ========================= */
+                    /* รวมคลื่น */
 
                     float wave =
                       wave1 * 0.16 +
@@ -438,25 +397,19 @@
                       wave3 * 0.02;
 
 
-                    /* =========================
-                       พริ้วซ้าย-ขวา
-                    ========================= */
+                    /* พริ้วซ้าย-ขวา */
 
                     transformed.x +=
                       wave * movement;
 
 
-                    /* =========================
-                       พริ้วเข้า-ออก
-                    ========================= */
+                    /* พริ้วเข้า-ออก */
 
                     transformed.z +=
                       wave * 0.5 * movement;
 
 
-                    /* =========================
-                       ขยับขึ้นลงเล็กน้อย
-                    ========================= */
+                    /* ขยับขึ้นลงเล็กน้อย */
 
                     transformed.y +=
                       sin(
@@ -467,9 +420,7 @@
                       movement;
 
 
-                    /* =========================
-                       ปลายล่างพริ้วเพิ่ม
-                    ========================= */
+                    /* ปลายล่างพริ้วเพิ่ม */
 
                     float edge =
                       smoothstep(
@@ -495,14 +446,8 @@
                       ) *
                       0.03 *
                       edge;
-
                     `
                   );
-
-
-                console.log(
-                  "Plane001 vertex animation applied"
-                );
 
 
                 curtainShaders.push(
@@ -512,16 +457,16 @@
               };
 
 
-            /* =========================
-               DOUBLE SIDE
-            ========================= */
-
             node.material.side =
               THREE.DoubleSide;
 
-
             node.material.needsUpdate =
               true;
+
+
+            console.log(
+              "Plane001 vertex animation applied"
+            );
 
           }
 
@@ -635,73 +580,6 @@
 
       }
     );
-
-
-    /* =========================
-       OLD VERTEX ANIMATION
-       ของเดิมยังคงอยู่
-    ========================= */
-
-    function addVertexAnimation(mesh) {
-
-      /* Clone material
-         เพื่อไม่กระทบ Object อื่น */
-
-      mesh.material =
-        mesh.material.clone();
-
-
-      mesh.material.onBeforeCompile =
-        function(shader) {
-
-          shader.uniforms.uTime =
-            shaderTime;
-
-
-          /* =========================
-             VERTEX SHADER
-          ========================= */
-
-          shader.vertexShader =
-            "uniform float uTime;\n" +
-            shader.vertexShader;
-
-
-          shader.vertexShader =
-            shader.vertexShader.replace(
-
-              "#include <begin_vertex>",
-
-              `
-              #include <begin_vertex>
-
-              float wave =
-                sin(
-                  transformed.x * 5.0
-                  + uTime * 2.0
-                );
-
-              transformed.z +=
-                wave * 0.25;
-              `
-            );
-
-
-          mesh.userData.shader =
-            shader;
-
-        };
-
-
-      mesh.material.needsUpdate =
-        true;
-
-
-      console.log(
-        "Vertex Shader ทำงานกับ Cube.052 แล้ว!"
-      );
-
-    }
 
 
     /* =========================
@@ -1218,16 +1096,12 @@
 
 
       /* =========================
-         UPDATE OLD SHADER TIME
+         UPDATE VERTEX SHADER TIME
       ========================= */
 
       shaderTime.value =
         clock.getElapsedTime();
 
-
-      /* =========================
-         UPDATE CLOTH SHADER TIME
-      ========================= */
 
       const currentTime =
         clock.getElapsedTime();

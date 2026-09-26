@@ -212,7 +212,9 @@
 
     const clock = new THREE.Clock();
 
-    const curtainShaders = [];
+    const shaderTime = {
+      value: 0
+    };
 
 
     /* =========================
@@ -246,306 +248,37 @@
 
 
         /* =========================
-           PLANE.001 VERTEX SHADER
+           AWNING VERTEX SHADER
         ========================= */
 
-        bakery.traverse(function(node) {
+        const awning =
+          bakery.getObjectByName("Cube.041");
 
-          const cleanName =
-            node.name.replace(/\./g, "");
 
+        console.log(
+          "Awning Cube.041:",
+          awning
+        );
 
-          if (
-            cleanName === "Plane001" &&
-            node.material
-          ) {
 
-            console.log(
-              "FOUND PLANE.001:",
-              node.name
-            );
+        if (awning) {
 
+          if (awning.isMesh) {
 
-            /* =========================
-               KEEP ORIGINAL MATERIAL
-            ========================= */
-
-            const oldMaterial =
-              node.material;
-
-            node.material =
-              oldMaterial.clone();
-
-
-            /* Keep original texture */
-
-            if (oldMaterial.map) {
-
-              node.material.map =
-                oldMaterial.map;
-
-            }
-
-
-            /* Keep original normal map */
-
-            if (oldMaterial.normalMap) {
-
-              node.material.normalMap =
-                oldMaterial.normalMap;
-
-            }
-
-
-            /* Keep original roughness map */
-
-            if (oldMaterial.roughnessMap) {
-
-              node.material.roughnessMap =
-                oldMaterial.roughnessMap;
-
-            }
-
-
-            /* Keep original metalness map */
-
-            if (oldMaterial.metalnessMap) {
-
-              node.material.metalnessMap =
-                oldMaterial.metalnessMap;
-
-            }
-
-
-            const geometry =
-              node.geometry;
-
-            geometry.computeBoundingBox();
-
-
-            const minY =
-              geometry.boundingBox.min.y;
-
-            const maxY =
-              geometry.boundingBox.max.y;
-
-
-            console.log(
-              "Plane001 vertices:",
-              geometry.attributes.position.count
-            );
-
-            console.log(
-              "minY:",
-              minY
-            );
-
-            console.log(
-              "maxY:",
-              maxY
-            );
-
-
-            node.material.onBeforeCompile =
-              function(shader) {
-
-
-                shader.uniforms.uTime = {
-                  value: 0
-                };
-
-
-                shader.uniforms.uMinY = {
-                  value: minY
-                };
-
-
-                shader.uniforms.uMaxY = {
-                  value: maxY
-                };
-
-
-                shader.vertexShader =
-                  `
-                  uniform float uTime;
-                  uniform float uMinY;
-                  uniform float uMaxY;
-                  ` +
-                  shader.vertexShader;
-
-
-                shader.vertexShader =
-                  shader.vertexShader.replace(
-
-                    "#include <begin_vertex>",
-
-                    `
-                    #include <begin_vertex>
-
-                    float t = uTime;
-
-
-                    /* =========================
-                       HEIGHT
-                    ========================= */
-
-                    float height01 =
-                      clamp(
-                        (position.y - uMinY) /
-                        max(
-                          uMaxY - uMinY,
-                          0.001
-                        ),
-                        0.0,
-                        1.0
-                      );
-
-
-                    /* =========================
-                       BOTTOM MOVES MORE
-                    ========================= */
-
-                    float bottom =
-                      1.0 - height01;
-
-                    float movement =
-                      pow(
-                        bottom,
-                        1.6
-                      );
-
-
-                    /* =========================
-                       BIG WAVE
-                    ========================= */
-
-                    float wave1 =
-                      sin(
-                        position.x * 4.0 +
-                        position.y * 4.0 +
-                        t * 1.8
-                      );
-
-
-                    /* =========================
-                       SECOND WAVE
-                    ========================= */
-
-                    float wave2 =
-                      sin(
-                        position.x * 8.0 +
-                        position.y * 6.0 +
-                        t * 2.5
-                      );
-
-
-                    /* =========================
-                       SMALL WAVE
-                    ========================= */
-
-                    float wave3 =
-                      sin(
-                        position.x * 15.0 +
-                        position.y * 9.0 +
-                        t * 4.0
-                      );
-
-
-                    /* =========================
-                       COMBINE
-                    ========================= */
-
-                    float wave =
-                      wave1 * 0.16 +
-                      wave2 * 0.07 +
-                      wave3 * 0.02;
-
-
-                    /* =========================
-                       LEFT / RIGHT
-                    ========================= */
-
-                    transformed.x +=
-                      wave * movement;
-
-
-                    /* =========================
-                       FRONT / BACK
-                    ========================= */
-
-                    transformed.z +=
-                      wave *
-                      0.5 *
-                      movement;
-
-
-                    /* =========================
-                       SMALL UP / DOWN
-                    ========================= */
-
-                    transformed.y +=
-                      sin(
-                        position.x * 6.0 +
-                        t * 2.0
-                      ) *
-                      0.04 *
-                      movement;
-
-
-                    /* =========================
-                       LOWER EDGE
-                    ========================= */
-
-                    float edge =
-                      smoothstep(
-                        0.5,
-                        1.0,
-                        bottom
-                      );
-
-
-                    transformed.x +=
-                      sin(
-                        position.x * 10.0 +
-                        t * 3.0
-                      ) *
-                      0.05 *
-                      edge;
-
-
-                    transformed.z +=
-                      cos(
-                        position.x * 8.0 +
-                        t * 2.5
-                      ) *
-                      0.03 *
-                      edge;
-                    `
-                  );
-
-
-                curtainShaders.push(
-                  shader
-                );
-
-              };
-
-
-            node.material.side =
-              THREE.DoubleSide;
-
-
-            node.material.needsUpdate =
-              true;
-
-
-            console.log(
-              "Plane001 vertex animation applied"
+            addVertexAnimation(
+              awning
             );
 
           }
 
-        });
+        }
+        else {
+
+          console.log(
+            "ไม่พบ Cube.041"
+          );
+
+        }
 
 
         /* =========================
@@ -658,6 +391,72 @@
 
 
     /* =========================
+       ADD VERTEX ANIMATION
+    ========================= */
+
+    function addVertexAnimation(mesh) {
+
+      /* Clone material
+         เพื่อไม่กระทบ Object อื่น */
+
+      mesh.material =
+        mesh.material.clone();
+
+
+      mesh.material.onBeforeCompile =
+        function(shader) {
+
+          shader.uniforms.uTime =
+            shaderTime;
+
+
+          /* =========================
+             VERTEX SHADER
+          ========================= */
+
+          shader.vertexShader =
+            "uniform float uTime;\n" +
+            shader.vertexShader;
+
+
+          shader.vertexShader =
+            shader.vertexShader.replace(
+
+              "#include <begin_vertex>",
+
+              `
+              #include <begin_vertex>
+
+              float wave =
+                sin(
+                  transformed.x * 5.0
+                  + uTime * 2.0
+                );
+
+              transformed.z +=
+                wave * 0.08;
+              `
+            );
+
+
+          mesh.userData.shader =
+            shader;
+
+        };
+
+
+      mesh.material.needsUpdate =
+        true;
+
+
+      console.log(
+        "Vertex Shader ทำงานกับ Cube.041 แล้ว!"
+      );
+
+    }
+
+
+    /* =========================
        CAMERA VARIABLES
     ========================= */
 
@@ -701,13 +500,11 @@
     ) {
 
       if (!targetObject) {
-
         console.log(
           "ไม่พบ target"
         );
 
         return;
-
       }
 
 
@@ -1057,11 +854,9 @@
 
           movingCamera = true;
 
-
           startCamera.copy(
             camera.position
           );
-
 
           startTarget.copy(
             controls.target
@@ -1071,7 +866,6 @@
           endCamera.copy(
             homeCameraPosition
           );
-
 
           endTarget.copy(
             homeTarget
@@ -1171,21 +965,11 @@
 
 
       /* =========================
-         UPDATE PLANE.001 SHADER
+         UPDATE VERTEX SHADER TIME
       ========================= */
 
-      const currentTime =
+      shaderTime.value =
         clock.getElapsedTime();
-
-
-      curtainShaders.forEach(
-        function(shader) {
-
-          shader.uniforms.uTime.value =
-            currentTime;
-
-        }
-      );
 
 
       if (movingCamera) {

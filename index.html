@@ -212,10 +212,6 @@
 
     const clock = new THREE.Clock();
 
-    const shaderTime = {
-      value: 0
-    };
-
     const curtainShaders = [];
 
 
@@ -258,21 +254,67 @@
           const cleanName =
             node.name.replace(/\./g, "");
 
+
           if (
             cleanName === "Plane001" &&
             node.material
           ) {
 
             console.log(
-              "FOUND CLOTH:",
+              "FOUND PLANE.001:",
               node.name
             );
 
-            /* Clone material
-               เพื่อไม่ให้กระทบ Texture เดิม */
+
+            /* =========================
+               KEEP ORIGINAL MATERIAL
+            ========================= */
+
+            const oldMaterial =
+              node.material;
 
             node.material =
-              node.material.clone();
+              oldMaterial.clone();
+
+
+            /* Keep original texture */
+
+            if (oldMaterial.map) {
+
+              node.material.map =
+                oldMaterial.map;
+
+            }
+
+
+            /* Keep original normal map */
+
+            if (oldMaterial.normalMap) {
+
+              node.material.normalMap =
+                oldMaterial.normalMap;
+
+            }
+
+
+            /* Keep original roughness map */
+
+            if (oldMaterial.roughnessMap) {
+
+              node.material.roughnessMap =
+                oldMaterial.roughnessMap;
+
+            }
+
+
+            /* Keep original metalness map */
+
+            if (oldMaterial.metalnessMap) {
+
+              node.material.metalnessMap =
+                oldMaterial.metalnessMap;
+
+            }
 
 
             const geometry =
@@ -307,13 +349,16 @@
             node.material.onBeforeCompile =
               function(shader) {
 
+
                 shader.uniforms.uTime = {
                   value: 0
                 };
 
+
                 shader.uniforms.uMinY = {
                   value: minY
                 };
+
 
                 shader.uniforms.uMaxY = {
                   value: maxY
@@ -339,27 +384,40 @@
 
                     float t = uTime;
 
-                    /* 0 = ล่างสุด / 1 = บนสุด */
+
+                    /* =========================
+                       HEIGHT
+                    ========================= */
 
                     float height01 =
                       clamp(
                         (position.y - uMinY) /
-                        max(uMaxY - uMinY, 0.001),
+                        max(
+                          uMaxY - uMinY,
+                          0.001
+                        ),
                         0.0,
                         1.0
                       );
 
 
-                    /* ด้านล่างพริ้วมากกว่าด้านบน */
+                    /* =========================
+                       BOTTOM MOVES MORE
+                    ========================= */
 
                     float bottom =
                       1.0 - height01;
 
                     float movement =
-                      pow(bottom, 1.6);
+                      pow(
+                        bottom,
+                        1.6
+                      );
 
 
-                    /* คลื่นใหญ่ */
+                    /* =========================
+                       BIG WAVE
+                    ========================= */
 
                     float wave1 =
                       sin(
@@ -369,7 +427,9 @@
                       );
 
 
-                    /* คลื่นรอง */
+                    /* =========================
+                       SECOND WAVE
+                    ========================= */
 
                     float wave2 =
                       sin(
@@ -379,7 +439,9 @@
                       );
 
 
-                    /* คลื่นละเอียด */
+                    /* =========================
+                       SMALL WAVE
+                    ========================= */
 
                     float wave3 =
                       sin(
@@ -389,7 +451,9 @@
                       );
 
 
-                    /* รวมคลื่น */
+                    /* =========================
+                       COMBINE
+                    ========================= */
 
                     float wave =
                       wave1 * 0.16 +
@@ -397,19 +461,27 @@
                       wave3 * 0.02;
 
 
-                    /* พริ้วซ้าย-ขวา */
+                    /* =========================
+                       LEFT / RIGHT
+                    ========================= */
 
                     transformed.x +=
                       wave * movement;
 
 
-                    /* พริ้วเข้า-ออก */
+                    /* =========================
+                       FRONT / BACK
+                    ========================= */
 
                     transformed.z +=
-                      wave * 0.5 * movement;
+                      wave *
+                      0.5 *
+                      movement;
 
 
-                    /* ขยับขึ้นลงเล็กน้อย */
+                    /* =========================
+                       SMALL UP / DOWN
+                    ========================= */
 
                     transformed.y +=
                       sin(
@@ -420,7 +492,9 @@
                       movement;
 
 
-                    /* ปลายล่างพริ้วเพิ่ม */
+                    /* =========================
+                       LOWER EDGE
+                    ========================= */
 
                     float edge =
                       smoothstep(
@@ -459,6 +533,7 @@
 
             node.material.side =
               THREE.DoubleSide;
+
 
             node.material.needsUpdate =
               true;
@@ -1096,12 +1171,8 @@
 
 
       /* =========================
-         UPDATE VERTEX SHADER TIME
+         UPDATE PLANE.001 SHADER
       ========================= */
-
-      shaderTime.value =
-        clock.getElapsedTime();
-
 
       const currentTime =
         clock.getElapsedTime();

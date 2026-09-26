@@ -218,6 +218,13 @@
 
 
     /* =========================
+       CLOTH SHADERS
+    ========================= */
+
+    const curtainShaders = [];
+
+
+    /* =========================
        GLB
     ========================= */
 
@@ -234,6 +241,11 @@
 
         scene.add(bakery);
 
+
+        /* =========================
+           SHADOW
+        ========================= */
+
         bakery.traverse(function(object) {
 
           if (object.isMesh) {
@@ -247,38 +259,273 @@
         });
 
 
-        /* =========================
-           AWNING VERTEX SHADER
-        ========================= */
+        /* =================================================
+           PLANE.001 CLOTH VERTEX SHADER
+        ================================================= */
 
-        const awning =
-          bakery.getObjectByName("Cube.041");
+        bakery.traverse(function(node) {
 
-
-        console.log(
-          "Awning Cube.041:",
-          awning
-        );
+          const cleanName =
+            node.name.replace(/\./g, "");
 
 
-        if (awning) {
+          if (
+            cleanName === "Plane001" &&
+            node.material
+          ) {
 
-          if (awning.isMesh) {
+            const geometry =
+              node.geometry;
 
-            addVertexAnimation(
-              awning
+
+            geometry.computeBoundingBox();
+
+
+            const minY =
+              geometry.boundingBox.min.y;
+
+
+            const maxY =
+              geometry.boundingBox.max.y;
+
+
+            console.log(
+              "FOUND CLOTH:",
+              node.name
             );
+
+
+            console.log(
+              "Plane001 vertices:",
+              geometry.attributes.position.count
+            );
+
+
+            console.log(
+              "minY:",
+              minY
+            );
+
+
+            console.log(
+              "maxY:",
+              maxY
+            );
+
+
+            node.material.onBeforeCompile =
+              function(shader) {
+
+
+                /* =========================
+                   UNIFORMS
+                ========================= */
+
+                shader.uniforms.uTime = {
+                  value: 0
+                };
+
+
+                shader.uniforms.uMinY = {
+                  value: minY
+                };
+
+
+                shader.uniforms.uMaxY = {
+                  value: maxY
+                };
+
+
+                /* =========================
+                   ADD UNIFORMS
+                ========================= */
+
+                shader.vertexShader = `
+
+                  uniform float uTime;
+                  uniform float uMinY;
+                  uniform float uMaxY;
+
+                ` + shader.vertexShader;
+
+
+                /* =========================
+                   VERTEX SHADER
+                ========================= */
+
+                shader.vertexShader =
+                  shader.vertexShader.replace(
+
+                    "#include <begin_vertex>",
+
+                    `
+
+                    #include <begin_vertex>
+
+
+                    float t = uTime;
+
+
+                    /* =========================
+                       0 = ล่างสุด
+                       1 = บนสุด
+                    ========================= */
+
+                    float height01 =
+                      clamp(
+                        (position.y - uMinY) /
+                        max(uMaxY - uMinY, 0.001),
+                        0.0,
+                        1.0
+                      );
+
+
+                    /* =========================
+                       ด้านล่างพริ้วมากกว่า
+                    ========================= */
+
+                    float bottom =
+                      1.0 - height01;
+
+
+                    float movement =
+                      pow(bottom, 1.6);
+
+
+                    /* =========================
+                       คลื่นใหญ่
+                    ========================= */
+
+                    float wave1 =
+                      sin(
+                        position.x * 4.0 +
+                        position.y * 4.0 +
+                        t * 1.8
+                      );
+
+
+                    /* =========================
+                       คลื่นรอง
+                    ========================= */
+
+                    float wave2 =
+                      sin(
+                        position.x * 8.0 +
+                        position.y * 6.0 +
+                        t * 2.5
+                      );
+
+
+                    /* =========================
+                       คลื่นละเอียด
+                    ========================= */
+
+                    float wave3 =
+                      sin(
+                        position.x * 15.0 +
+                        position.y * 9.0 +
+                        t * 4.0
+                      );
+
+
+                    /* =========================
+                       รวมคลื่น
+                    ========================= */
+
+                    float wave =
+                      wave1 * 0.16 +
+                      wave2 * 0.07 +
+                      wave3 * 0.02;
+
+
+                    /* =========================
+                       พริ้วซ้าย-ขวา
+                    ========================= */
+
+                    transformed.x +=
+                      wave * movement;
+
+
+                    /* =========================
+                       พริ้วเข้า-ออก
+                    ========================= */
+
+                    transformed.z +=
+                      wave * 0.5 * movement;
+
+
+                    /* =========================
+                       ขยับขึ้นลงเล็กน้อย
+                    ========================= */
+
+                    transformed.y +=
+                      sin(
+                        position.x * 6.0 +
+                        t * 2.0
+                      ) *
+                      0.04 *
+                      movement;
+
+
+                    /* =========================
+                       ปลายล่างพริ้วเพิ่ม
+                    ========================= */
+
+                    float edge =
+                      smoothstep(
+                        0.5,
+                        1.0,
+                        bottom
+                      );
+
+
+                    transformed.x +=
+                      sin(
+                        position.x * 10.0 +
+                        t * 3.0
+                      ) *
+                      0.05 *
+                      edge;
+
+
+                    transformed.z +=
+                      cos(
+                        position.x * 8.0 +
+                        t * 2.5
+                      ) *
+                      0.03 *
+                      edge;
+
+                    `
+                  );
+
+
+                console.log(
+                  "Plane001 vertex animation applied"
+                );
+
+
+                curtainShaders.push(
+                  shader
+                );
+
+              };
+
+
+            /* =========================
+               DOUBLE SIDE
+            ========================= */
+
+            node.material.side =
+              THREE.DoubleSide;
+
+
+            node.material.needsUpdate =
+              true;
 
           }
 
-        }
-        else {
-
-          console.log(
-            "ไม่พบ Cube.041"
-          );
-
-        }
+        });
 
 
         /* =========================
@@ -391,7 +638,8 @@
 
 
     /* =========================
-       ADD VERTEX ANIMATION
+       OLD VERTEX ANIMATION
+       ของเดิมยังคงอยู่
     ========================= */
 
     function addVertexAnimation(mesh) {
@@ -434,7 +682,7 @@
                 );
 
               transformed.z +=
-                wave * 0.08;
+                wave * 0.25;
               `
             );
 
@@ -450,7 +698,7 @@
 
 
       console.log(
-        "Vertex Shader ทำงานกับ Cube.041 แล้ว!"
+        "Vertex Shader ทำงานกับ Cube.052 แล้ว!"
       );
 
     }
@@ -500,11 +748,13 @@
     ) {
 
       if (!targetObject) {
+
         console.log(
           "ไม่พบ target"
         );
 
         return;
+
       }
 
 
@@ -854,9 +1104,11 @@
 
           movingCamera = true;
 
+
           startCamera.copy(
             camera.position
           );
+
 
           startTarget.copy(
             controls.target
@@ -866,6 +1118,7 @@
           endCamera.copy(
             homeCameraPosition
           );
+
 
           endTarget.copy(
             homeTarget
@@ -965,11 +1218,29 @@
 
 
       /* =========================
-         UPDATE VERTEX SHADER TIME
+         UPDATE OLD SHADER TIME
       ========================= */
 
       shaderTime.value =
         clock.getElapsedTime();
+
+
+      /* =========================
+         UPDATE CLOTH SHADER TIME
+      ========================= */
+
+      const currentTime =
+        clock.getElapsedTime();
+
+
+      curtainShaders.forEach(
+        function(shader) {
+
+          shader.uniforms.uTime.value =
+            currentTime;
+
+        }
+      );
 
 
       if (movingCamera) {

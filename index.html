@@ -6,7 +6,7 @@
   <meta charset="utf-8">
 
   <meta name="viewport"
-        content="width=device-width, initial-scale=1">
+        content="width=device-width, initial-scale=1.0">
 
   <title>Bakery 3D</title>
 
@@ -19,7 +19,6 @@
       height: 100%;
       overflow: hidden;
       background: #FFF4E3;
-      font-family: sans-serif;
     }
 
     canvas {
@@ -28,1290 +27,1274 @@
 
     #backButton,
     #nextButton {
+
       position: fixed;
-      z-index: 10;
+
+      bottom: 30px;
 
       padding: 12px 20px;
 
       border: none;
+
       border-radius: 10px;
 
-      background: white;
-      color: #5a3a2e;
+      background: #ffffff;
+
+      color: #8b5e3c;
 
       font-size: 16px;
-      font-weight: bold;
 
       cursor: pointer;
 
-      box-shadow: 0 3px 10px rgba(0,0,0,0.2);
-
       display: none;
+
+      z-index: 10;
+
+      box-shadow:
+        0 4px 12px
+        rgba(0,0,0,0.15);
+
     }
 
     #backButton {
-      left: 20px;
-      top: 20px;
+      left: 30px;
     }
 
     #nextButton {
-      right: 20px;
-      bottom: 20px;
+      right: 30px;
     }
 
     #backButton:hover,
     #nextButton:hover {
-      transform: scale(1.05);
+      background: #f8d9c4;
     }
 
   </style>
-
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 
 </head>
 
 <body>
 
-  <button id="backButton">
-    ← กลับ
-  </button>
+<button id="backButton">
+  ← Back
+</button>
 
-  <button id="nextButton">
-    Menu Donut →
-  </button>
-
-
-  <script>
-
-    /* =========================
-       SCENE
-    ========================= */
-
-    const scene = new THREE.Scene();
-
-    scene.background = new THREE.Color(0xFFF4E3);
+<button id="nextButton">
+  Next →
+</button>
 
 
-    /* =========================
-       CAMERA
-    ========================= */
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 
-    const camera = new THREE.PerspectiveCamera(
-      45,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+
+<script>
+
+const scene =
+  new THREE.Scene();
+
+scene.background =
+  new THREE.Color(0xFFF4E3);
+
+
+const camera =
+  new THREE.PerspectiveCamera(
+    45,
+    window.innerWidth /
+    window.innerHeight,
+    0.1,
+    1000
+  );
+
+
+const renderer =
+  new THREE.WebGLRenderer({
+    antialias: true
+  });
+
+renderer.setSize(
+  window.innerWidth,
+  window.innerHeight
+);
+
+renderer.setPixelRatio(
+  Math.min(window.devicePixelRatio, 2)
+);
+
+renderer.outputEncoding =
+  THREE.sRGBEncoding;
+
+renderer.shadowMap.enabled = true;
+
+document.body.appendChild(
+  renderer.domElement
+);
+
+
+const controls =
+  new THREE.OrbitControls(
+    camera,
+    renderer.domElement
+  );
+
+controls.enableDamping = true;
+
+controls.minDistance = 3;
+
+controls.maxDistance = 30;
+
+
+const ambientLight =
+  new THREE.AmbientLight(
+    0xffffff,
+    0.45
+  );
+
+scene.add(ambientLight);
+
+
+const spotLight =
+  new THREE.SpotLight(
+    0xffffff,
+    2.5
+  );
+
+spotLight.position.set(
+  8,
+  10,
+  12
+);
+
+spotLight.castShadow = true;
+
+scene.add(spotLight);
+
+
+const leftLight =
+  new THREE.SpotLight(
+    0xffffff,
+    1.5
+  );
+
+leftLight.position.set(
+  -8,
+  6,
+  8
+);
+
+leftLight.castShadow = true;
+
+scene.add(leftLight);
+
+
+const directionalLight =
+  new THREE.DirectionalLight(
+    0xffffff,
+    0.5
+  );
+
+directionalLight.position.set(
+  -5,
+  -5,
+  8
+);
+
+scene.add(
+  directionalLight
+);
+
+
+const clock =
+  new THREE.Clock();
+
+const shaderTime = {
+  value: 0
+};
+
+
+/* =====================================================
+   CLOTH SHADERS
+   Plane.001
+   Plane.003
+   Plane.004
+===================================================== */
+
+const curtainShaders = [];
+
+
+let bakery = null;
+
+
+/* =====================================================
+   LOAD GLB
+===================================================== */
+
+const loader =
+  new THREE.GLTFLoader();
+
+
+loader.load(
+  "Bekery.glb",
+
+  function(gltf) {
+
+    bakery =
+      gltf.scene;
+
+    scene.add(
+      bakery
     );
 
 
-    /* =========================
-       RENDERER
-    ========================= */
+    /* Shadows */
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true
-    });
+    bakery.traverse(
+      function(node) {
 
-    renderer.setSize(
-      window.innerWidth,
-      window.innerHeight
-    );
+        if (
+          node.isMesh
+        ) {
 
-    renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio, 2)
-    );
+          node.castShadow =
+            true;
 
-    renderer.outputEncoding = THREE.sRGBEncoding;
+          node.receiveShadow =
+            true;
 
-    renderer.shadowMap.enabled = true;
-
-    document.body.appendChild(renderer.domElement);
-
-
-    /* =========================
-       CONTROLS
-    ========================= */
-
-    const controls = new THREE.OrbitControls(
-      camera,
-      renderer.domElement
-    );
-
-    controls.enableDamping = true;
-
-    controls.dampingFactor = 0.05;
-
-    controls.minDistance = 3;
-
-    controls.maxDistance = 30;
-
-
-    /* =========================
-       LIGHT
-    ========================= */
-
-    const ambientLight = new THREE.AmbientLight(
-      0xffffff,
-      0.45
-    );
-
-    scene.add(ambientLight);
-
-
-    const mainLight = new THREE.SpotLight(
-      0xffffff,
-      2.5
-    );
-
-    mainLight.position.set(
-      8,
-      10,
-      12
-    );
-
-    mainLight.castShadow = true;
-
-    scene.add(mainLight);
-
-
-    const leftLight = new THREE.SpotLight(
-      0xffffff,
-      1.5
-    );
-
-    leftLight.position.set(
-      -8,
-      6,
-      8
-    );
-
-    scene.add(leftLight);
-
-
-    const backLight = new THREE.DirectionalLight(
-      0xffffff,
-      0.5
-    );
-
-    backLight.position.set(
-      -5,
-      -5,
-      8
-    );
-
-    scene.add(backLight);
-
-
-    /* =========================
-       VERTEX SHADER TIME
-    ========================= */
-
-    const clock = new THREE.Clock();
-
-    const shaderTime = {
-      value: 0
-    };
-
-
-    /* =========================
-       CLOTH SHADERS
-    ========================= */
-
-    const curtainShaders = [];
-
-
-    /* =========================
-       GLB
-    ========================= */
-
-    const loader = new THREE.GLTFLoader();
-
-    let bakery = null;
-
-    loader.load(
-      "Bekery.glb",
-
-      function(gltf) {
-
-        bakery = gltf.scene;
-
-        scene.add(bakery);
-
-
-        /* =========================
-           SHADOW
-        ========================= */
-
-        bakery.traverse(function(object) {
-
-          if (object.isMesh) {
-
-            object.castShadow = true;
-
-            object.receiveShadow = true;
-
-          }
-
-        });
-
-
-        /* =================================================
-           PLANE.001 CLOTH VERTEX SHADER
-        ================================================= */
-
-        bakery.traverse(function(node) {
-
-          const cleanName =
-            node.name.replace(/\./g, "");
-
-
-          if (
-            cleanName === "Plane001" &&
-            node.material
-          ) {
-
-            const geometry =
-              node.geometry;
-
-
-            geometry.computeBoundingBox();
-
-
-            const minY =
-              geometry.boundingBox.min.y;
-
-
-            const maxY =
-              geometry.boundingBox.max.y;
-
-
-            console.log(
-              "FOUND CLOTH:",
-              node.name
-            );
-
-
-            console.log(
-              "Plane001 vertices:",
-              geometry.attributes.position.count
-            );
-
-
-            console.log(
-              "minY:",
-              minY
-            );
-
-
-            console.log(
-              "maxY:",
-              maxY
-            );
-
-
-            node.material.onBeforeCompile =
-              function(shader) {
-
-
-                /* =========================
-                   UNIFORMS
-                ========================= */
-
-                shader.uniforms.uTime = {
-                  value: 0
-                };
-
-
-                shader.uniforms.uMinY = {
-                  value: minY
-                };
-
-
-                shader.uniforms.uMaxY = {
-                  value: maxY
-                };
-
-
-                /* =========================
-                   ADD UNIFORMS
-                ========================= */
-
-                shader.vertexShader = `
-
-                  uniform float uTime;
-                  uniform float uMinY;
-                  uniform float uMaxY;
-
-                ` + shader.vertexShader;
-
-
-                /* =========================
-                   VERTEX SHADER
-                ========================= */
-
-                shader.vertexShader =
-                  shader.vertexShader.replace(
-
-                    "#include <begin_vertex>",
-
-                    `
-
-                    #include <begin_vertex>
-
-
-                    float t = uTime;
-
-
-                    /* =========================
-                       0 = ล่างสุด
-                       1 = บนสุด
-                    ========================= */
-
-                    float height01 =
-                      clamp(
-                        (position.y - uMinY) /
-                        max(uMaxY - uMinY, 0.001),
-                        0.0,
-                        1.0
-                      );
-
-
-                    /* =========================
-                       ด้านล่างพริ้วมากกว่า
-                    ========================= */
-
-                    float bottom =
-                      1.0 - height01;
-
-
-                    float movement =
-                      pow(bottom, 1.6);
-
-
-                    /* =========================
-                       คลื่นใหญ่
-                    ========================= */
-
-                    float wave1 =
-                      sin(
-                        position.x * 4.0 +
-                        position.y * 4.0 +
-                        t * 1.8
-                      );
-
-
-                    /* =========================
-                       คลื่นรอง
-                    ========================= */
-
-                    float wave2 =
-                      sin(
-                        position.x * 8.0 +
-                        position.y * 6.0 +
-                        t * 2.5
-                      );
-
-
-                    /* =========================
-                       คลื่นละเอียด
-                    ========================= */
-
-                    float wave3 =
-                      sin(
-                        position.x * 15.0 +
-                        position.y * 9.0 +
-                        t * 4.0
-                      );
-
-
-                    /* =========================
-                       รวมคลื่น
-                    ========================= */
-
-                    float wave =
-                      wave1 * 0.16 +
-                      wave2 * 0.07 +
-                      wave3 * 0.02;
-
-
-                    /* =========================
-                       พริ้วซ้าย-ขวา
-                    ========================= */
-
-                    transformed.x +=
-                      wave * movement;
-
-
-                    /* =========================
-                       พริ้วเข้า-ออก
-                    ========================= */
-
-                    transformed.z +=
-                      wave * 0.5 * movement;
-
-
-                    /* =========================
-                       ขยับขึ้นลงเล็กน้อย
-                    ========================= */
-
-                    transformed.y +=
-                      sin(
-                        position.x * 6.0 +
-                        t * 2.0
-                      ) *
-                      0.04 *
-                      movement;
-
-
-                    /* =========================
-                       ปลายล่างพริ้วเพิ่ม
-                    ========================= */
-
-                    float edge =
-                      smoothstep(
-                        0.5,
-                        1.0,
-                        bottom
-                      );
-
-
-                    transformed.x +=
-                      sin(
-                        position.x * 10.0 +
-                        t * 3.0
-                      ) *
-                      0.05 *
-                      edge;
-
-
-                    transformed.z +=
-                      cos(
-                        position.x * 8.0 +
-                        t * 2.5
-                      ) *
-                      0.03 *
-                      edge;
-
-                    `
-                  );
-
-
-                console.log(
-                  "Plane001 vertex animation applied"
-                );
-
-
-                curtainShaders.push(
-                  shader
-                );
-
-              };
-
-
-            /* =========================
-               DOUBLE SIDE
-            ========================= */
-
-            node.material.side =
-              THREE.DoubleSide;
-
-
-            node.material.needsUpdate =
-              true;
-
-          }
-
-        });
-
-
-        /* =========================
-           MODEL SIZE
-        ========================= */
-
-        const box = new THREE.Box3()
-          .setFromObject(bakery);
-
-        const size = box.getSize(
-          new THREE.Vector3()
-        );
-
-        const center = box.getCenter(
-          new THREE.Vector3()
-        );
-
-
-        console.log(
-          "Bakery loaded"
-        );
-
-        console.log(
-          "Size:",
-          size
-        );
-
-        console.log(
-          "Center:",
-          center
-        );
-
-
-        /* =========================
-           CHECK OBJECTS
-        ========================= */
-
-        console.log(
-          "About me:",
-          bakery.getObjectByName("About_me")
-        );
-
-        console.log(
-          "Menu:",
-          bakery.getObjectByName("BtnMenu")
-        );
-
-        console.log(
-          "Portfolio:",
-          bakery.getObjectByName("BtnPortfolio")
-        );
-
-        console.log(
-          "Menu Cake:",
-          bakery.getObjectByName("MenuCake")
-        );
-
-        console.log(
-          "Menu Donut:",
-          bakery.getObjectByName("MenuDonut")
-        );
-
-
-        /* =========================
-           HOME CAMERA
-        ========================= */
-
-        camera.position.set(
-          box.max.x + size.x * 1.6,
-          center.y,
-          center.z + size.z * 0.15
-        );
-
-        controls.target.set(
-          center.x,
-          center.y,
-          center.z
-        );
-
-        camera.lookAt(
-          controls.target
-        );
-
-
-        /* =========================
-           SAVE HOME CAMERA
-        ========================= */
-
-        homeCameraPosition.copy(
-          camera.position
-        );
-
-        homeTarget.copy(
-          controls.target
-        );
-
-      },
-
-      undefined,
-
-      function(error) {
-
-        console.error(
-          "โหลด Bakery ไม่สำเร็จ",
-          error
-        );
+        }
 
       }
     );
 
 
-    /* =========================
-       OLD VERTEX ANIMATION
-       ของเดิมยังคงอยู่
-    ========================= */
+    /* =================================================
+       CLOTH ANIMATION
+       Plane.001
+       Plane.003
+       Plane.004
+    ================================================= */
 
-    function addVertexAnimation(mesh) {
+    bakery.traverse(
+      function(node) {
 
-      /* Clone material
-         เพื่อไม่กระทบ Object อื่น */
-
-      mesh.material =
-        mesh.material.clone();
-
-
-      mesh.material.onBeforeCompile =
-        function(shader) {
-
-          shader.uniforms.uTime =
-            shaderTime;
+        const cleanName =
+          node.name.replace(
+            /\./g,
+            ""
+          );
 
 
-          /* =========================
-             VERTEX SHADER
-          ========================= */
+        if (
+          (
+            cleanName === "Plane001" ||
+            cleanName === "Plane003" ||
+            cleanName === "Plane004"
+          )
+          &&
+          node.material
+        ) {
 
-          shader.vertexShader =
-            "uniform float uTime;\n" +
-            shader.vertexShader;
+
+          const geometry =
+            node.geometry;
 
 
-          shader.vertexShader =
-            shader.vertexShader.replace(
+          geometry.computeBoundingBox();
 
-              "#include <begin_vertex>",
 
-              `
-              #include <begin_vertex>
+          const minY =
+            geometry.boundingBox.min.y;
 
-              float wave =
-                sin(
-                  transformed.x * 5.0
-                  + uTime * 2.0
+
+          const maxY =
+            geometry.boundingBox.max.y;
+
+
+          console.log(
+            "FOUND CLOTH:",
+            node.name
+          );
+
+
+          console.log(
+            "Vertices:",
+            geometry.attributes.position.count
+          );
+
+
+          console.log(
+            "minY:",
+            minY
+          );
+
+
+          console.log(
+            "maxY:",
+            maxY
+          );
+
+
+          node.material.onBeforeCompile =
+            function(shader) {
+
+
+              shader.uniforms.uTime = {
+                value: 0
+              };
+
+
+              shader.uniforms.uMinY = {
+                value: minY
+              };
+
+
+              shader.uniforms.uMaxY = {
+                value: maxY
+              };
+
+
+              shader.vertexShader = `
+
+                uniform float uTime;
+                uniform float uMinY;
+                uniform float uMaxY;
+
+              ` + shader.vertexShader;
+
+
+              shader.vertexShader =
+                shader.vertexShader.replace(
+
+                  "#include <begin_vertex>",
+
+                  `
+
+                  #include <begin_vertex>
+
+
+                  float t = uTime;
+
+
+                  /* 0 = bottom / 1 = top */
+
+                  float height01 =
+                    clamp(
+                      (position.y - uMinY) /
+                      max(
+                        uMaxY - uMinY,
+                        0.001
+                      ),
+                      0.0,
+                      1.0
+                    );
+
+
+                  /* Bottom moves more */
+
+                  float bottom =
+                    1.0 - height01;
+
+
+                  float movement =
+                    pow(
+                      bottom,
+                      1.6
+                    );
+
+
+                  /* Big wave */
+
+                  float wave1 =
+                    sin(
+                      position.x * 4.0 +
+                      position.y * 4.0 +
+                      t * 1.8
+                    );
+
+
+                  /* Secondary wave */
+
+                  float wave2 =
+                    sin(
+                      position.x * 8.0 +
+                      position.y * 6.0 +
+                      t * 2.5
+                    );
+
+
+                  /* Small detailed wave */
+
+                  float wave3 =
+                    sin(
+                      position.x * 15.0 +
+                      position.y * 9.0 +
+                      t * 4.0
+                    );
+
+
+                  /* Combine waves */
+
+                  float wave =
+                    wave1 * 0.16 +
+                    wave2 * 0.07 +
+                    wave3 * 0.02;
+
+
+                  /* Left / right movement */
+
+                  transformed.x +=
+                    wave *
+                    movement;
+
+
+                  /* Forward / backward movement */
+
+                  transformed.z +=
+                    wave *
+                    0.5 *
+                    movement;
+
+
+                  /* Small up / down movement */
+
+                  transformed.y +=
+                    sin(
+                      position.x * 6.0 +
+                      t * 2.0
+                    ) *
+                    0.04 *
+                    movement;
+
+
+                  /* Extra movement at bottom edge */
+
+                  float edge =
+                    smoothstep(
+                      0.5,
+                      1.0,
+                      bottom
+                    );
+
+
+                  transformed.x +=
+                    sin(
+                      position.x * 10.0 +
+                      t * 3.0
+                    ) *
+                    0.05 *
+                    edge;
+
+
+                  transformed.z +=
+                    cos(
+                      position.x * 8.0 +
+                      t * 2.5
+                    ) *
+                    0.03 *
+                    edge;
+
+                  `
                 );
 
-              transformed.z +=
-                wave * 0.25;
-              `
+
+              console.log(
+                "Plane vertex animation applied:",
+                node.name
+              );
+
+
+              curtainShaders.push(
+                shader
+              );
+
+            };
+
+
+          node.material.side =
+            THREE.DoubleSide;
+
+
+          node.material.needsUpdate =
+            true;
+
+        }
+
+      }
+    );
+
+
+    /* =================================================
+       FIND MODEL SIZE
+    ================================================= */
+
+    const box =
+      new THREE.Box3()
+        .setFromObject(
+          bakery
+        );
+
+
+    const size =
+      box.getSize(
+        new THREE.Vector3()
+      );
+
+
+    const center =
+      box.getCenter(
+        new THREE.Vector3()
+      );
+
+
+    console.log(
+      "About_me:",
+      bakery.getObjectByName(
+        "About_me"
+      )
+    );
+
+
+    console.log(
+      "Menu:",
+      bakery.getObjectByName(
+        "MenuCake"
+      )
+    );
+
+
+    console.log(
+      "Portfolio:",
+      bakery.getObjectByName(
+        "BtnPortfolio"
+      )
+    );
+
+
+    console.log(
+      "Menu Cake:",
+      bakery.getObjectByName(
+        "MenuCake"
+      )
+    );
+
+
+    console.log(
+      "Menu Donut:",
+      bakery.getObjectByName(
+        "MenuDonut"
+      )
+    );
+
+
+    /* =================================================
+       HOME CAMERA
+    ================================================= */
+
+    camera.position.set(
+      box.max.x +
+      size.x * 1.6,
+
+      center.y,
+
+      center.z +
+      size.z * 0.15
+    );
+
+
+    controls.target.copy(
+      center
+    );
+
+
+    controls.update();
+
+
+    homeCameraPosition =
+      camera.position.clone();
+
+
+    homeTarget =
+      controls.target.clone();
+
+  },
+
+  undefined,
+
+  function(error) {
+
+    console.error(
+      "GLB loading error:",
+      error
+    );
+
+  }
+);
+
+
+/* =====================================================
+   OLD VERTEX ANIMATION
+   Kept unchanged
+===================================================== */
+
+function addVertexAnimation(
+  mesh
+) {
+
+  mesh.material =
+    mesh.material.clone();
+
+
+  mesh.material.onBeforeCompile =
+    function(shader) {
+
+      shader.uniforms.uTime =
+        shaderTime;
+
+
+      shader.vertexShader =
+        `
+
+        uniform float uTime;
+
+        ` +
+        shader.vertexShader;
+
+
+      shader.vertexShader =
+        shader.vertexShader.replace(
+
+          "#include <begin_vertex>",
+
+          `
+
+          #include <begin_vertex>
+
+          float wave =
+            sin(
+              transformed.x * 5.0 +
+              uTime * 2.0
             );
 
+          transformed.z +=
+            wave * 0.25;
 
-          mesh.userData.shader =
-            shader;
-
-        };
-
-
-      mesh.material.needsUpdate =
-        true;
+          `
+        );
 
 
       console.log(
         "Vertex Shader ทำงานกับ Cube.052 แล้ว!"
       );
 
-    }
+    };
+
+}
 
 
-    /* =========================
-       CAMERA VARIABLES
-    ========================= */
+/* =====================================================
+   CAMERA VARIABLES
+===================================================== */
 
-    const homeCameraPosition =
-      new THREE.Vector3();
+let homeCameraPosition =
+  new THREE.Vector3();
 
-    const homeTarget =
-      new THREE.Vector3();
+let homeTarget =
+  new THREE.Vector3();
 
+let moving = false;
 
-    let currentPage = "home";
+let moveStart =
+  new THREE.Vector3();
 
-    let movingCamera = false;
+let moveEnd =
+  new THREE.Vector3();
 
-    let moveStartTime = 0;
+let targetStart =
+  new THREE.Vector3();
 
+let targetEnd =
+  new THREE.Vector3();
 
-    const startCamera =
-      new THREE.Vector3();
+let moveProgress = 0;
 
-    const endCamera =
-      new THREE.Vector3();
-
-    const startTarget =
-      new THREE.Vector3();
-
-    const endTarget =
-      new THREE.Vector3();
-
-
-    const moveDuration = 1000;
+let currentPage =
+  "home";
 
 
-    /* =========================
-       MOVE CAMERA
-    ========================= */
+/* =====================================================
+   BUTTONS
+===================================================== */
 
-    function moveCameraTo(
-      targetObject,
-      type
+const backButton =
+  document.getElementById(
+    "backButton"
+  );
+
+
+const nextButton =
+  document.getElementById(
+    "nextButton"
+  );
+
+
+/* =====================================================
+   MOVE CAMERA
+===================================================== */
+
+function moveCameraTo(
+  targetObject,
+  type
+) {
+
+  if (!targetObject)
+    return;
+
+
+  const box =
+    new THREE.Box3()
+      .setFromObject(
+        targetObject
+      );
+
+
+  const center =
+    box.getCenter(
+      new THREE.Vector3()
+    );
+
+
+  const size =
+    box.getSize(
+      new THREE.Vector3()
+    );
+
+
+  moveStart.copy(
+    camera.position
+  );
+
+
+  targetStart.copy(
+    controls.target
+  );
+
+
+  if (
+    type === "about"
+  ) {
+
+    moveEnd.set(
+      center.x + size.x * 2.5,
+      center.y,
+      center.z + size.z * 2.5
+    );
+
+  }
+
+
+  else if (
+    type === "menuCake"
+  ) {
+
+    moveEnd.set(
+      center.x + size.x * 2.2,
+      center.y,
+      center.z + size.z * 2.2
+    );
+
+  }
+
+
+  else if (
+    type === "menuDonut"
+  ) {
+
+    moveEnd.set(
+      center.x + size.x * 2.2,
+      center.y,
+      center.z + size.z * 2.2
+    );
+
+  }
+
+
+  targetEnd.copy(
+    center
+  );
+
+
+  moveProgress =
+    0;
+
+  moving =
+    true;
+
+
+  currentPage =
+    type;
+
+
+  backButton.style.display =
+    "block";
+
+
+  if (
+    type === "menuCake"
+  ) {
+
+    nextButton.style.display =
+      "block";
+
+  }
+
+  else {
+
+    nextButton.style.display =
+      "none";
+
+  }
+
+}
+
+
+/* =====================================================
+   RAYCASTER
+===================================================== */
+
+const raycaster =
+  new THREE.Raycaster();
+
+
+const mouse =
+  new THREE.Vector2();
+
+
+window.addEventListener(
+  "click",
+
+  function(event) {
+
+    mouse.x =
+      (
+        event.clientX /
+        window.innerWidth
+      ) * 2 - 1;
+
+
+    mouse.y =
+      -(
+        event.clientY /
+        window.innerHeight
+      ) * 2 + 1;
+
+
+    raycaster.setFromCamera(
+      mouse,
+      camera
+    );
+
+
+    if (!bakery)
+      return;
+
+
+    const intersects =
+      raycaster.intersectObject(
+        bakery,
+        true
+      );
+
+
+    if (
+      intersects.length === 0
+    )
+      return;
+
+
+    let object =
+      intersects[0].object;
+
+
+    let clickedObject =
+      null;
+
+
+    while (
+      object &&
+      object !== bakery
     ) {
 
-      if (!targetObject) {
+      if (
+        object.name ===
+        "About_me"
+      ) {
 
-        console.log(
-          "ไม่พบ target"
-        );
+        clickedObject =
+          object;
 
-        return;
-
-      }
-
-
-      const targetPosition =
-        new THREE.Vector3();
-
-      targetObject.getWorldPosition(
-        targetPosition
-      );
-
-
-      startCamera.copy(
-        camera.position
-      );
-
-      startTarget.copy(
-        controls.target
-      );
-
-
-      endTarget.copy(
-        targetPosition
-      );
-
-
-      /* =========================
-         ABOUT ME
-      ========================= */
-
-      if (type === "about") {
-
-        const direction =
-          new THREE.Vector3()
-            .subVectors(
-              homeCameraPosition,
-              homeTarget
-            )
-            .normalize();
-
-
-        endCamera.copy(
-          targetPosition
-        );
-
-
-        endCamera.add(
-          direction.multiplyScalar(4)
-        );
-
-
-        currentPage = "about";
+        break;
 
       }
 
 
-      /* =========================
-         MENU CAKE
-      ========================= */
+      if (
+        object.name ===
+        "BtnMenu"
+      ) {
 
-      else if (type === "menuCake") {
+        clickedObject =
+          object;
 
-        endCamera.set(
-          targetPosition.x + 2.5,
-          targetPosition.y,
-          targetPosition.z + 0.4
-        );
-
-        currentPage = "menuCake";
+        break;
 
       }
 
 
-      /* =========================
-         MENU DONUT
-      ========================= */
+      if (
+        object.name ===
+        "BtnPortfolio"
+      ) {
 
-      else if (type === "menuDonut") {
+        clickedObject =
+          object;
 
-        endCamera.set(
-          targetPosition.x + 2.5,
-          targetPosition.y,
-          targetPosition.z + 0.4
-        );
-
-        currentPage = "menuDonut";
+        break;
 
       }
 
 
-      movingCamera = true;
+      if (
+        object.name ===
+        "MenuCake"
+      ) {
 
-      moveStartTime =
-        performance.now();
+        clickedObject =
+          object;
 
-      controls.enabled = false;
-
-
-      /* =========================
-         BUTTONS
-      ========================= */
-
-      document
-        .getElementById("backButton")
-        .style.display = "block";
-
-
-      if (type === "menuCake") {
-
-        document
-          .getElementById("nextButton")
-          .style.display = "block";
+        break;
 
       }
-      else {
 
-        document
-          .getElementById("nextButton")
-          .style.display = "none";
+
+      if (
+        object.name ===
+        "MenuDonut"
+      ) {
+
+        clickedObject =
+          object;
+
+        break;
 
       }
+
+
+      object =
+        object.parent;
 
     }
 
 
-    /* =========================
-       RAYCASTER
-    ========================= */
+    if (!clickedObject)
+      return;
 
-    const raycaster =
-      new THREE.Raycaster();
 
-    const mouse =
-      new THREE.Vector2();
+    /* About Me */
 
+    if (
+      clickedObject.name ===
+      "About_me"
+    ) {
 
-    /* =========================
-       CLICK 3D MODEL
-    ========================= */
-
-    window.addEventListener(
-      "click",
-      function(event) {
-
-        if (!bakery) {
-          return;
-        }
-
-
-        mouse.x =
-          (event.clientX /
-            window.innerWidth) * 2 - 1;
-
-        mouse.y =
-          -(event.clientY /
-            window.innerHeight) * 2 + 1;
-
-
-        raycaster.setFromCamera(
-          mouse,
-          camera
-        );
-
-
-        const intersects =
-          raycaster.intersectObjects(
-            bakery.children,
-            true
-          );
-
-
-        if (intersects.length === 0) {
-
-          console.log(
-            "ไม่เจอ Object"
-          );
-
-          return;
-
-        }
-
-
-        let clicked =
-          intersects[0].object;
-
-
-        console.log(
-          "Clicked:",
-          clicked.name
-        );
-
-
-        /* =========================
-           CHECK PARENT
-        ========================= */
-
-        while (clicked) {
-
-
-          console.log(
-            "ตรวจชื่อ:",
-            clicked.name
-          );
-
-
-          /* =========================
-             ABOUT ME
-          ========================= */
-
-          if (
-            clicked.name === "About_me"
-          ) {
-
-            console.log(
-              "เจอ About_me แล้ว!"
-            );
-
-
-            const aboutTarget =
-              bakery.getObjectByName(
-                "About_me"
-              );
-
-
-            if (aboutTarget) {
-
-              moveCameraTo(
-                aboutTarget,
-                "about"
-              );
-
-            }
-
-
-            return;
-
-          }
-
-
-          /* =========================
-             MENU
-          ========================= */
-
-          if (
-            clicked.name === "BtnMenu"
-          ) {
-
-            console.log(
-              "เจอ BtnMenu"
-            );
-
-
-            const menuTarget =
-              bakery.getObjectByName(
-                "MenuCake"
-              );
-
-
-            if (menuTarget) {
-
-              moveCameraTo(
-                menuTarget,
-                "menuCake"
-              );
-
-            }
-
-
-            return;
-
-          }
-
-
-          /* =========================
-             PORTFOLIO
-          ========================= */
-
-          if (
-            clicked.name ===
-            "BtnPortfolio"
-          ) {
-
-            console.log(
-              "เจอ BtnPortfolio"
-            );
-
-
-            window.open(
-              "https://wiphadathabpia.github.io/PortfolioBakery/",
-              "_blank"
-            );
-
-
-            return;
-
-          }
-
-
-          clicked =
-            clicked.parent;
-
-        }
-
-      }
-    );
-
-
-    /* =========================
-       BACK BUTTON
-    ========================= */
-
-    document
-      .getElementById("backButton")
-      .addEventListener(
-        "click",
-        function() {
-
-
-          /* =========================
-             MENU DONUT → MENU CAKE
-          ========================= */
-
-          if (
-            currentPage ===
-            "menuDonut"
-          ) {
-
-            const cakeTarget =
-              bakery.getObjectByName(
-                "MenuCake"
-              );
-
-
-            moveCameraTo(
-              cakeTarget,
-              "menuCake"
-            );
-
-
-            return;
-
-          }
-
-
-          /* =========================
-             RETURN HOME
-          ========================= */
-
-          movingCamera = true;
-
-
-          startCamera.copy(
-            camera.position
-          );
-
-
-          startTarget.copy(
-            controls.target
-          );
-
-
-          endCamera.copy(
-            homeCameraPosition
-          );
-
-
-          endTarget.copy(
-            homeTarget
-          );
-
-
-          moveStartTime =
-            performance.now();
-
-
-          currentPage = "home";
-
-
-          controls.enabled = false;
-
-
-          document
-            .getElementById(
-              "backButton"
-            )
-            .style.display = "none";
-
-
-          document
-            .getElementById(
-              "nextButton"
-            )
-            .style.display = "none";
-
-        }
-      );
-
-
-    /* =========================
-       NEXT BUTTON
-    ========================= */
-
-    document
-      .getElementById("nextButton")
-      .addEventListener(
-        "click",
-        function() {
-
-
-          const donutTarget =
-            bakery.getObjectByName(
-              "MenuDonut"
-            );
-
-
-          if (donutTarget) {
-
-            moveCameraTo(
-              donutTarget,
-              "menuDonut"
-            );
-
-          }
-
-        }
-      );
-
-
-    /* =========================
-       RESIZE
-    ========================= */
-
-    window.addEventListener(
-      "resize",
-      function() {
-
-        camera.aspect =
-          window.innerWidth /
-          window.innerHeight;
-
-        camera.updateProjectionMatrix();
-
-
-        renderer.setSize(
-          window.innerWidth,
-          window.innerHeight
-        );
-
-      }
-    );
-
-
-    /* =========================
-       ANIMATION
-    ========================= */
-
-    function animate() {
-
-      requestAnimationFrame(
-        animate
-      );
-
-
-      /* =========================
-         UPDATE OLD SHADER TIME
-      ========================= */
-
-      shaderTime.value =
-        clock.getElapsedTime();
-
-
-      /* =========================
-         UPDATE CLOTH SHADER TIME
-      ========================= */
-
-      const currentTime =
-        clock.getElapsedTime();
-
-
-      curtainShaders.forEach(
-        function(shader) {
-
-          shader.uniforms.uTime.value =
-            currentTime;
-
-        }
-      );
-
-
-      if (movingCamera) {
-
-        const elapsed =
-          performance.now() -
-          moveStartTime;
-
-
-        let t =
-          Math.min(
-            elapsed / moveDuration,
-            1
-          );
-
-
-        /* Smooth Step */
-
-        t =
-          t * t *
-          (3 - 2 * t);
-
-
-        camera.position.lerpVectors(
-          startCamera,
-          endCamera,
-          t
-        );
-
-
-        controls.target.lerpVectors(
-          startTarget,
-          endTarget,
-          t
-        );
-
-
-        camera.lookAt(
-          controls.target
-        );
-
-
-        if (
-          elapsed >= moveDuration
-        ) {
-
-          movingCamera = false;
-
-          controls.enabled = true;
-
-        }
-
-      }
-      else {
-
-        controls.update();
-
-      }
-
-
-      renderer.render(
-        scene,
-        camera
+      moveCameraTo(
+        clickedObject,
+        "about"
       );
 
     }
 
 
-    animate();
+    /* Menu */
 
-  </script>
+    else if (
+      clickedObject.name ===
+      "BtnMenu"
+    ) {
+
+      const menu =
+        bakery.getObjectByName(
+          "MenuCake"
+        );
+
+      moveCameraTo(
+        menu,
+        "menuCake"
+      );
+
+    }
+
+
+    /* Portfolio */
+
+    else if (
+      clickedObject.name ===
+      "BtnPortfolio"
+    ) {
+
+      window.open(
+        "https://wiphadathabpia.github.io/PortfolioBakery/",
+        "_blank"
+      );
+
+    }
+
+
+    /* Menu Cake */
+
+    else if (
+      clickedObject.name ===
+      "MenuCake"
+    ) {
+
+      moveCameraTo(
+        clickedObject,
+        "menuCake"
+      );
+
+    }
+
+
+    /* Menu Donut */
+
+    else if (
+      clickedObject.name ===
+      "MenuDonut"
+    ) {
+
+      moveCameraTo(
+        clickedObject,
+        "menuDonut"
+      );
+
+    }
+
+  }
+);
+
+
+/* =====================================================
+   BACK BUTTON
+===================================================== */
+
+backButton.addEventListener(
+  "click",
+
+  function() {
+
+    if (
+      currentPage ===
+      "menuDonut"
+    ) {
+
+      const menu =
+        bakery.getObjectByName(
+          "MenuCake"
+        );
+
+      moveCameraTo(
+        menu,
+        "menuCake"
+      );
+
+      return;
+
+    }
+
+
+    camera.position.copy(
+      homeCameraPosition
+    );
+
+
+    controls.target.copy(
+      homeTarget
+    );
+
+
+    controls.update();
+
+
+    moving =
+      false;
+
+
+    currentPage =
+      "home";
+
+
+    backButton.style.display =
+      "none";
+
+
+    nextButton.style.display =
+      "none";
+
+  }
+);
+
+
+/* =====================================================
+   NEXT BUTTON
+===================================================== */
+
+nextButton.addEventListener(
+  "click",
+
+  function() {
+
+    if (
+      currentPage !==
+      "menuCake"
+    )
+      return;
+
+
+    const donut =
+      bakery.getObjectByName(
+        "MenuDonut"
+      );
+
+
+    moveCameraTo(
+      donut,
+      "menuDonut"
+    );
+
+  }
+);
+
+
+/* =====================================================
+   RESIZE
+===================================================== */
+
+window.addEventListener(
+  "resize",
+
+  function() {
+
+    camera.aspect =
+      window.innerWidth /
+      window.innerHeight;
+
+
+    camera.updateProjectionMatrix();
+
+
+    renderer.setSize(
+      window.innerWidth,
+      window.innerHeight
+    );
+
+  }
+);
+
+
+/* =====================================================
+   ANIMATION
+===================================================== */
+
+function animate() {
+
+  requestAnimationFrame(
+    animate
+  );
+
+
+  const currentTime =
+    clock.getElapsedTime();
+
+
+  shaderTime.value =
+    currentTime;
+
+
+  /* Update Plane.001 / Plane.003 / Plane.004 */
+
+  curtainShaders.forEach(
+    function(shader) {
+
+      shader.uniforms.uTime.value =
+        currentTime;
+
+    }
+  );
+
+
+  /* Camera movement */
+
+  if (moving) {
+
+    moveProgress +=
+      0.025;
+
+
+    if (
+      moveProgress >= 1
+    ) {
+
+      moveProgress =
+        1;
+
+      moving =
+        false;
+
+    }
+
+
+    const eased =
+      moveProgress *
+      moveProgress *
+      (
+        3 -
+        2 *
+        moveProgress
+      );
+
+
+    camera.position.lerpVectors(
+      moveStart,
+      moveEnd,
+      eased
+    );
+
+
+    controls.target.lerpVectors(
+      targetStart,
+      targetEnd,
+      eased
+    );
+
+  }
+
+
+  controls.update();
+
+
+  renderer.render(
+    scene,
+    camera
+  );
+
+}
+
+
+animate();
+
+</script>
 
 </body>
 

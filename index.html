@@ -64,17 +64,8 @@
   <button id="nextButton">Menu Donut →</button>
 
   <script>
-    /* =========================
-        SCENE
-    ========================= */
-
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0xFFF4E3);
-
-
-    /* =========================
-        CAMERA
-    ========================= */
 
     const camera = new THREE.PerspectiveCamera(
       45,
@@ -83,157 +74,69 @@
       1000
     );
 
-
-    /* =========================
-        RENDERER
-    ========================= */
-
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true
-    });
-
-    renderer.setSize(
-      window.innerWidth,
-      window.innerHeight
-    );
-
-    renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio, 2)
-    );
-
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.shadowMap.enabled = true;
-
     document.body.appendChild(renderer.domElement);
 
-
-    /* =========================
-        CONTROLS
-    ========================= */
-
-    const controls = new THREE.OrbitControls(
-      camera,
-      renderer.domElement
-    );
-
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.minDistance = 3;
-    controls.maxDistance = 30;
 
-
-    /* =========================
-        LIGHT
-    ========================= */
-
-    const ambientLight = new THREE.AmbientLight(
-      0xffffff,
-      0.45
-    );
-
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
     scene.add(ambientLight);
 
-
-    const mainLight = new THREE.SpotLight(
-      0xffffff,
-      2.5
-    );
-
+    const mainLight = new THREE.SpotLight(0xffffff, 2.5);
     mainLight.position.set(8, 10, 12);
     mainLight.castShadow = true;
-
     scene.add(mainLight);
 
-
-    const leftLight = new THREE.SpotLight(
-      0xffffff,
-      1.5
-    );
-
+    const leftLight = new THREE.SpotLight(0xffffff, 1.5);
     leftLight.position.set(-8, 6, 8);
-
     scene.add(leftLight);
 
-
-    const backLight = new THREE.DirectionalLight(
-      0xffffff,
-      0.5
-    );
-
+    const backLight = new THREE.DirectionalLight(0xffffff, 0.5);
     backLight.position.set(-5, -5, 8);
-
     scene.add(backLight);
-
-
-    /* =========================
-        SHADER TIME & VARIABLES
-    ========================= */
 
     const clock = new THREE.Clock();
     const shaderTime = { value: 0.0 };
     const cakeShaders = [];
-    let cakeMesh = null;
-
-
-    /* =========================
-        CAMERA VARIABLES
-    ========================= */
+    let targetMesh = null;
 
     const homeCameraPosition = new THREE.Vector3();
     const homeTarget = new THREE.Vector3();
-
     let currentPage = "home";
     let movingCamera = false;
     let moveStartTime = 0;
-
     const startCamera = new THREE.Vector3();
     const endCamera = new THREE.Vector3();
-
     const startTarget = new THREE.Vector3();
     const endTarget = new THREE.Vector3();
-
     const moveDuration = 1000;
 
-
-    /* =========================
-        LOAD GLB
-    ========================= */
-
     const loader = new THREE.GLTFLoader();
-
-    let bakery = null;
-
     loader.load(
       "Bekery.glb",
-
       function(gltf) {
-
         bakery = gltf.scene;
-
         scene.add(bakery);
 
-
-        /* =========================
-            SHADOW & CAKE SETUP
-        ========================= */
-
         bakery.traverse(function(object) {
-
           if (object.isMesh) {
             object.castShadow = true;
             object.receiveShadow = true;
 
-            // ตรวจจับก้อนเค้กชิ้นใหญ่
-            if (object.name === "Cylinder.024") {
-              cakeMesh = object;
+            // ค้นหาก้อนเค้กจากชื่อ
+            if (object.name === "Cylinder.024" || object.name.includes("Cylinder")) {
+              targetMesh = object;
               object.material = object.material.clone();
-
-              console.log("FOUND CAKE:", object.name);
 
               object.material.onBeforeCompile = function(shader) {
                 shader.uniforms.uTime = shaderTime;
 
-                // Fragment Shader สำหรับเปลี่ยนสี ชมพู - พีช
                 shader.fragmentShader = `
                   uniform float uTime;
                 ` + shader.fragmentShader;
@@ -259,429 +162,149 @@
               object.material.needsUpdate = true;
             }
           }
-
         });
 
-
-        /* =========================
-            MODEL SIZE
-        ========================= */
-
-        const box = new THREE.Box3()
-          .setFromObject(bakery);
-
-        const size = box.getSize(
-          new THREE.Vector3()
-        );
-
-        const center = box.getCenter(
-          new THREE.Vector3()
-        );
-
-
-        /* =========================
-            HOME CAMERA
-        ========================= */
+        const box = new THREE.Box3().setFromObject(bakery);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
 
         camera.position.set(
           box.max.x + size.x * 1.6,
           center.y,
           center.z + size.z * 0.15
         );
-
-        controls.target.set(
-          center.x,
-          center.y,
-          center.z
-        );
-
-        camera.lookAt(controls.target);
-
-
-        /* =========================
-            SAVE HOME CAMERA
-        ========================= */
+        controls.target.copy(center);
+        controls.update();
 
         homeCameraPosition.copy(camera.position);
         homeTarget.copy(controls.target);
-
       },
-
       undefined,
-
       function(error) {
-
-        console.error(
-          "โหลด Bakery ไม่สำเร็จ",
-          error
-        );
-
+        console.error("โหลด Bakery ไม่สำเร็จ", error);
       }
     );
 
-
-    /* =========================
-        MOVE CAMERA
-    ========================= */
-
     function moveCameraTo(targetObject, type) {
-
-      if (!targetObject) {
-        console.log("ไม่พบ target");
-        return;
-      }
-
+      if (!targetObject) return;
       const targetPosition = new THREE.Vector3();
-
       targetObject.getWorldPosition(targetPosition);
 
       startCamera.copy(camera.position);
       startTarget.copy(controls.target);
-
       endTarget.copy(targetPosition);
 
-
-      /* =========================
-          ABOUT ME
-      ========================= */
-
       if (type === "about") {
-
-        const direction = new THREE.Vector3()
-          .subVectors(
-            homeCameraPosition,
-            homeTarget
-          )
-          .normalize();
-
-        endCamera.copy(targetPosition);
-
-        endCamera.add(
-          direction.multiplyScalar(4)
-        );
-
+        const direction = new THREE.Vector3().subVectors(homeCameraPosition, homeTarget).normalize();
+        endCamera.copy(targetPosition).add(direction.multiplyScalar(4));
         currentPage = "about";
-
-      }
-
-
-      /* =========================
-          MENU CAKE
-      ========================= */
-
-      else if (type === "menuCake") {
-
-        endCamera.set(
-          targetPosition.x + 2.5,
-          targetPosition.y,
-          targetPosition.z + 0.4
-        );
-
+      } else if (type === "menuCake") {
+        endCamera.set(targetPosition.x + 2.5, targetPosition.y, targetPosition.z + 0.4);
         currentPage = "menuCake";
-
-      }
-
-
-      /* =========================
-          MENU DONUT
-      ========================= */
-
-      else if (type === "menuDonut") {
-
-        endCamera.set(
-          targetPosition.x + 2.5,
-          targetPosition.y,
-          targetPosition.z + 0.4
-        );
-
+      } else if (type === "menuDonut") {
+        endCamera.set(targetPosition.x + 2.5, targetPosition.y, targetPosition.z + 0.4);
         currentPage = "menuDonut";
-
       }
-
 
       movingCamera = true;
       moveStartTime = performance.now();
-
       controls.enabled = false;
-
       document.getElementById("backButton").style.display = "block";
-
-      if (type === "menuCake") {
-        document.getElementById("nextButton").style.display = "block";
-      } else {
-        document.getElementById("nextButton").style.display = "none";
-      }
-
+      document.getElementById("nextButton").style.display = (type === "menuCake") ? "block" : "none";
     }
-
-
-    /* =========================
-        RAYCASTER
-    ========================= */
 
     const raycaster = new THREE.Raycaster();
     const mouse = new THREE.Vector2();
 
-
-    /* =========================
-        CLICK 3D MODEL
-    ========================= */
-
     window.addEventListener("click", function(event) {
-
-      if (!bakery) {
-        return;
-      }
-
-      mouse.x =
-        (event.clientX / window.innerWidth) * 2 - 1;
-
-      mouse.y =
-        -(event.clientY / window.innerHeight) * 2 + 1;
-
+      if (!bakery) return;
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
       raycaster.setFromCamera(mouse, camera);
 
-      const intersects = raycaster.intersectObjects(
-        bakery.children,
-        true
-      );
-
-      if (intersects.length === 0) {
-        console.log("ไม่เจอ Object");
-        return;
-      }
+      const intersects = raycaster.intersectObjects(bakery.children, true);
+      if (intersects.length === 0) return;
 
       let clicked = intersects[0].object;
-
-      console.log("Clicked:", clicked.name);
-
-
-      /* =========================
-          CHECK PARENT
-      ========================= */
-
       while (clicked) {
-
-        console.log("ตรวจชื่อ:", clicked.name);
-
-
-        /* =========================
-            ABOUT ME
-        ========================= */
-
         if (clicked.name === "About_me") {
-
-          console.log("เจอ About_me แล้ว!");
-
-          const aboutTarget = bakery.getObjectByName("About_me");
-
-          if (aboutTarget) {
-            moveCameraTo(aboutTarget, "about");
-          }
-
+          moveCameraTo(bakery.getObjectByName("About_me"), "about");
           return;
-
         }
-
-
-        /* =========================
-            MENU
-        ========================= */
-
         if (clicked.name === "BtnMenu") {
-
-          console.log("เจอ BtnMenu");
-
-          const menuTarget = bakery.getObjectByName("MenuCake");
-
-          if (menuTarget) {
-            moveCameraTo(menuTarget, "menuCake");
-          }
-
+          moveCameraTo(bakery.getObjectByName("MenuCake"), "menuCake");
           return;
-
         }
-
-
-        /* =========================
-            PORTFOLIO
-        ========================= */
-
         if (clicked.name === "BtnPortfolio") {
-
-          console.log("เจอ BtnPortfolio");
-
-          window.open(
-            "https://wiphadathabpia.github.io/PortfolioBakery/",
-            "_blank"
-          );
-
+          window.open("https://wiphadathabpia.github.io/PortfolioBakery/", "_blank");
           return;
-
         }
-
         clicked = clicked.parent;
-
       }
-
     });
 
-
-    /* =========================
-        BACK BUTTON
-    ========================= */
-
-    document.getElementById("backButton").addEventListener(
-      "click",
-      function() {
-
-        if (!bakery) {
-          return;
-        }
-
-        /* =========================
-            MENU DONUT → MENU CAKE
-        ========================= */
-
-        if (currentPage === "menuDonut") {
-
-          const cakeTarget = bakery.getObjectByName("MenuCake");
-
-          moveCameraTo(cakeTarget, "menuCake");
-
-          return;
-
-        }
-
-
-        /* =========================
-            RETURN HOME
-        ========================= */
-
-        movingCamera = true;
-
-        startCamera.copy(camera.position);
-        startTarget.copy(controls.target);
-
-        endCamera.copy(homeCameraPosition);
-        endTarget.copy(homeTarget);
-
-        moveStartTime = performance.now();
-
-        currentPage = "home";
-
-        controls.enabled = false;
-
-        document.getElementById("backButton").style.display = "none";
-        document.getElementById("nextButton").style.display = "none";
-
+    document.getElementById("backButton").addEventListener("click", function() {
+      if (!bakery) return;
+      if (currentPage === "menuDonut") {
+        moveCameraTo(bakery.getObjectByName("MenuCake"), "menuCake");
+        return;
       }
-    );
+      movingCamera = true;
+      startCamera.copy(camera.position);
+      startTarget.copy(controls.target);
+      endCamera.copy(homeCameraPosition);
+      endTarget.copy(homeTarget);
+      moveStartTime = performance.now();
+      currentPage = "home";
+      controls.enabled = false;
+      document.getElementById("backButton").style.display = "none";
+      document.getElementById("nextButton").style.display = "none";
+    });
 
-
-    /* =========================
-        NEXT BUTTON
-    ========================= */
-
-    document.getElementById("nextButton").addEventListener(
-      "click",
-      function() {
-
-        if (!bakery) {
-          return;
-        }
-
-        const donutTarget = bakery.getObjectByName("MenuDonut");
-
-        if (donutTarget) {
-          moveCameraTo(donutTarget, "menuDonut");
-        }
-
-      }
-    );
-
-
-    /* =========================
-        RESIZE
-    ========================= */
+    document.getElementById("nextButton").addEventListener("click", function() {
+      if (!bakery) return;
+      moveCameraTo(bakery.getObjectByName("MenuDonut"), "menuDonut");
+    });
 
     window.addEventListener("resize", function() {
-
-      camera.aspect =
-        window.innerWidth / window.innerHeight;
-
+      camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
-
-      renderer.setSize(
-        window.innerWidth,
-        window.innerHeight
-      );
-
+      renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-
-    /* =========================
-        ANIMATION
-    ========================= */
-
     function animate() {
-
       requestAnimationFrame(animate);
 
       const currentTime = clock.getElapsedTime();
       shaderTime.value = currentTime;
 
-      // หมุนเค้ก Cylinder.024 รอบตัวเอง
-      if (cakeMesh) {
-        cakeMesh.rotation.y = currentTime * 0.8;
+      if (targetMesh) {
+        targetMesh.rotation.y = currentTime * 0.8;
       }
 
       cakeShaders.forEach(function(shader) {
         shader.uniforms.uTime.value = currentTime;
       });
 
-
       if (movingCamera) {
-
         const elapsed = performance.now() - moveStartTime;
-
-        let t = Math.min(
-          elapsed / moveDuration,
-          1
-        );
-
-        t = t * t * (3 - 2 * t);
-
-        camera.position.lerpVectors(
-          startCamera,
-          endCamera,
-          t
-        );
-
-        controls.target.lerpVectors(
-          startTarget,
-          endTarget,
-          t
-        );
-
+        let p = Math.min(elapsed / moveDuration, 1);
+        p = p * p * (3 - 2 * p);
+        camera.position.lerpVectors(startCamera, endCamera, p);
+        controls.target.lerpVectors(startTarget, endTarget, p);
         camera.lookAt(controls.target);
-
         if (elapsed >= moveDuration) {
           movingCamera = false;
           controls.enabled = true;
         }
-
       } else {
         controls.update();
       }
 
       renderer.render(scene, camera);
-
     }
 
     animate();
-
   </script>
-
 </body>
 </html>

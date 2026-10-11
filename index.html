@@ -286,9 +286,9 @@ shader.vertexShader = shader.vertexShader.replace(
    float wave2 = sin(position.x * 11.0 - t * 1.4);
    float wave3 = sin(position.z * 6.0 + t * 1.7);
 
-   float wave = wave1 * 0.045
-              + wave2 * 0.020
-              + wave3 * 0.010;
+   float wave = wave1 * 0.065
+              + wave2 * 0.040
+              + wave3 * 0.030;
 
    // Keep the upper edge stable
    float edgeWeight = 1.0 - smoothstep(

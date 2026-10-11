@@ -55,4 +55,873 @@
 
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GL
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+
+<body>
+
+  <button id="backButton">← กลับ</button>
+  <button id="nextButton">Menu Donut →</button>
+
+  <script>
+    /* =========================
+       SCENE
+    ========================= */
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xFFF4E3);
+
+
+    /* =========================
+       CAMERA
+    ========================= */
+
+    const camera = new THREE.PerspectiveCamera(
+      45,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+
+
+    /* =========================
+       RENDERER
+    ========================= */
+
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true
+    });
+
+    renderer.setSize(
+      window.innerWidth,
+      window.innerHeight
+    );
+
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, 2)
+    );
+
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.shadowMap.enabled = true;
+
+    document.body.appendChild(renderer.domElement);
+
+
+    /* =========================
+       CONTROLS
+    ========================= */
+
+    const controls = new THREE.OrbitControls(
+      camera,
+      renderer.domElement
+    );
+
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.minDistance = 3;
+    controls.maxDistance = 30;
+
+
+    /* =========================
+       LIGHT
+    ========================= */
+
+    const ambientLight = new THREE.AmbientLight(
+      0xffffff,
+      0.45
+    );
+
+    scene.add(ambientLight);
+
+
+    const mainLight = new THREE.SpotLight(
+      0xffffff,
+      2.5
+    );
+
+    mainLight.position.set(8, 10, 12);
+    mainLight.castShadow = true;
+
+    scene.add(mainLight);
+
+
+    const leftLight = new THREE.SpotLight(
+      0xffffff,
+      1.5
+    );
+
+    leftLight.position.set(-8, 6, 8);
+
+    scene.add(leftLight);
+
+
+    const backLight = new THREE.DirectionalLight(
+      0xffffff,
+      0.5
+    );
+
+    backLight.position.set(-5, -5, 8);
+
+    scene.add(backLight);
+
+
+    /* =========================
+       SHADER TIME
+    ========================= */
+
+    const clock = new THREE.Clock();
+
+    const shaderTime = {
+      value: 0
+    };
+
+    const curtainShaders = [];
+
+
+    /* =========================
+       LOAD GLB
+    ========================= */
+
+    const loader = new THREE.GLTFLoader();
+
+    let bakery = null;
+
+    loader.load(
+      "Bekery.glb",
+
+      function(gltf) {
+
+        bakery = gltf.scene;
+
+        scene.add(bakery);
+
+
+        /* =========================
+           SHADOW
+        ========================= */
+
+        bakery.traverse(function(object) {
+
+          if (object.isMesh) {
+            object.castShadow = true;
+            object.receiveShadow = true;
+          }
+
+        });
+
+
+        /* =================================================
+           PLANE.001, PLANE.002, PLANE.003
+           VERTEX + FRAGMENT SHADER
+        ================================================= */
+
+        bakery.traverse(function(node) {
+
+          const cleanName = node.name.replace(/\./g, "");
+
+          if (
+            ["Plane001", "Plane002", "Plane003"].includes(cleanName) &&
+            node.material &&
+            node.geometry
+          ) {
+
+            // Clone material to keep each awning independent
+            node.material = node.material.clone();
+
+            const geometry = node.geometry;
+
+            geometry.computeBoundingBox();
+
+            const minY = geometry.boundingBox.min.y;
+            const maxY = geometry.boundingBox.max.y;
+
+            console.log("FOUND CLOTH:", node.name);
+
+            console.log(
+              node.name + " vertices:",
+              geometry.attributes.position.count
+            );
+
+
+            node.material.onBeforeCompile = function(shader) {
+
+              /* =========================
+                 UNIFORMS
+              ========================= */
+
+              shader.uniforms.uTime = {
+                value: 0
+              };
+
+              shader.uniforms.uMinY = {
+                value: minY
+              };
+
+              shader.uniforms.uMaxY = {
+                value: maxY
+              };
+
+
+              /* =========================
+                 VERTEX SHADER
+                 Animate the awning
+              ========================= */
+
+              shader.vertexShader = `
+                uniform float uTime;
+                uniform float uMinY;
+                uniform float uMaxY;
+              ` + shader.vertexShader;
+
+
+              shader.vertexShader = shader.vertexShader.replace(
+                "#include <begin_vertex>",
+                `
+                #include <begin_vertex>
+
+                float t = uTime;
+
+                float height01 = clamp(
+                  (position.y - uMinY) /
+                  max(uMaxY - uMinY, 0.001),
+                  0.0,
+                  1.0
+                );
+
+                float bottom = 1.0 - height01;
+                float movement = pow(bottom, 1.6);
+
+                float wave1 = sin(
+                  position.x * 4.0 +
+                  position.y * 4.0 +
+                  t * 1.8
+                );
+
+                float wave2 = sin(
+                  position.x * 8.0 +
+                  position.y * 6.0 +
+                  t * 2.5
+                );
+
+                float wave3 = sin(
+                  position.x * 15.0 +
+                  position.y * 9.0 +
+                  t * 4.0
+                );
+
+                float wave =
+                  wave1 * 0.16 +
+                  wave2 * 0.07 +
+                  wave3 * 0.02;
+
+                transformed.x += wave * movement;
+                transformed.z += wave * 0.5 * movement;
+
+                transformed.y +=
+                  sin(position.x * 6.0 + t * 2.0) *
+                  0.04 * movement;
+
+                float edge = smoothstep(0.5, 1.0, bottom);
+
+                transformed.x +=
+                  sin(position.x * 10.0 + t * 3.0) *
+                  0.05 * edge;
+
+                transformed.z +=
+                  cos(position.x * 8.0 + t * 2.5) *
+                  0.03 * edge;
+                `
+              );
+
+
+              /* =========================
+                 FRAGMENT SHADER
+                 Change awning color
+              ========================= */
+
+              shader.fragmentShader = `
+                uniform float uTime;
+              ` + shader.fragmentShader;
+
+
+              shader.fragmentShader = shader.fragmentShader.replace(
+                "#include <color_fragment>",
+                `
+                #include <color_fragment>
+
+                float colorPulse =
+                  0.5 + 0.5 * sin(uTime * 1.5);
+
+                vec3 pinkTint =
+                  vec3(1.0, 0.25, 0.50);
+
+                vec3 orangeTint =
+                  vec3(1.0, 0.65, 0.25);
+
+                vec3 newTint =
+                  mix(pinkTint, orangeTint, colorPulse);
+
+                diffuseColor.rgb =
+                  mix(diffuseColor.rgb, newTint, 0.5);
+                `
+              );
+
+
+              console.log(
+                node.name + " Vertex + Fragment Shader applied"
+              );
+
+              curtainShaders.push(shader);
+
+            };
+
+
+            /* =========================
+               DOUBLE SIDE
+            ========================= */
+
+            node.material.side = THREE.DoubleSide;
+            node.material.needsUpdate = true;
+
+          }
+
+        });
+
+
+        /* =========================
+           MODEL SIZE
+        ========================= */
+
+        const box = new THREE.Box3()
+          .setFromObject(bakery);
+
+        const size = box.getSize(
+          new THREE.Vector3()
+        );
+
+        const center = box.getCenter(
+          new THREE.Vector3()
+        );
+
+
+        console.log("Bakery loaded");
+        console.log("Size:", size);
+        console.log("Center:", center);
+
+
+        /* =========================
+           CHECK OBJECTS
+        ========================= */
+
+        console.log(
+          "About me:",
+          bakery.getObjectByName("About_me")
+        );
+
+        console.log(
+          "Menu:",
+          bakery.getObjectByName("BtnMenu")
+        );
+
+        console.log(
+          "Portfolio:",
+          bakery.getObjectByName("BtnPortfolio")
+        );
+
+        console.log(
+          "Menu Cake:",
+          bakery.getObjectByName("MenuCake")
+        );
+
+        console.log(
+          "Menu Donut:",
+          bakery.getObjectByName("MenuDonut")
+        );
+
+
+        /* =========================
+           HOME CAMERA
+        ========================= */
+
+        camera.position.set(
+          box.max.x + size.x * 1.6,
+          center.y,
+          center.z + size.z * 0.15
+        );
+
+        controls.target.set(
+          center.x,
+          center.y,
+          center.z
+        );
+
+        camera.lookAt(controls.target);
+
+
+        /* =========================
+           SAVE HOME CAMERA
+        ========================= */
+
+        homeCameraPosition.copy(camera.position);
+        homeTarget.copy(controls.target);
+
+      },
+
+      undefined,
+
+      function(error) {
+
+        console.error(
+          "โหลด Bakery ไม่สำเร็จ",
+          error
+        );
+
+      }
+    );
+
+
+    /* =========================
+       OLD VERTEX ANIMATION
+       Keep existing function
+    ========================= */
+
+    function addVertexAnimation(mesh) {
+
+      mesh.material = mesh.material.clone();
+
+      mesh.material.onBeforeCompile = function(shader) {
+
+        shader.uniforms.uTime = shaderTime;
+
+        shader.vertexShader =
+          "uniform float uTime;\n" +
+          shader.vertexShader;
+
+        shader.vertexShader = shader.vertexShader.replace(
+          "#include <begin_vertex>",
+          `
+          #include <begin_vertex>
+
+          float wave = sin(
+            transformed.x * 5.0 +
+            uTime * 2.0
+          );
+
+          transformed.z += wave * 0.25;
+          `
+        );
+
+        mesh.userData.shader = shader;
+
+      };
+
+      mesh.material.needsUpdate = true;
+
+      console.log(
+        "Vertex Shader ทำงานกับ Cube.052 แล้ว!"
+      );
+
+    }
+
+
+    /* =========================
+       CAMERA VARIABLES
+    ========================= */
+
+    const homeCameraPosition = new THREE.Vector3();
+    const homeTarget = new THREE.Vector3();
+
+    let currentPage = "home";
+    let movingCamera = false;
+    let moveStartTime = 0;
+
+    const startCamera = new THREE.Vector3();
+    const endCamera = new THREE.Vector3();
+
+    const startTarget = new THREE.Vector3();
+    const endTarget = new THREE.Vector3();
+
+    const moveDuration = 1000;
+
+
+    /* =========================
+       MOVE CAMERA
+    ========================= */
+
+    function moveCameraTo(targetObject, type) {
+
+      if (!targetObject) {
+        console.log("ไม่พบ target");
+        return;
+      }
+
+      const targetPosition = new THREE.Vector3();
+
+      targetObject.getWorldPosition(targetPosition);
+
+      startCamera.copy(camera.position);
+      startTarget.copy(controls.target);
+
+      endTarget.copy(targetPosition);
+
+
+      /* =========================
+         ABOUT ME
+      ========================= */
+
+      if (type === "about") {
+
+        const direction = new THREE.Vector3()
+          .subVectors(
+            homeCameraPosition,
+            homeTarget
+          )
+          .normalize();
+
+        endCamera.copy(targetPosition);
+
+        endCamera.add(
+          direction.multiplyScalar(4)
+        );
+
+        currentPage = "about";
+
+      }
+
+
+      /* =========================
+         MENU CAKE
+      ========================= */
+
+      else if (type === "menuCake") {
+
+        endCamera.set(
+          targetPosition.x + 2.5,
+          targetPosition.y,
+          targetPosition.z + 0.4
+        );
+
+        currentPage = "menuCake";
+
+      }
+
+
+      /* =========================
+         MENU DONUT
+      ========================= */
+
+      else if (type === "menuDonut") {
+
+        endCamera.set(
+          targetPosition.x + 2.5,
+          targetPosition.y,
+          targetPosition.z + 0.4
+        );
+
+        currentPage = "menuDonut";
+
+      }
+
+
+      movingCamera = true;
+      moveStartTime = performance.now();
+
+      controls.enabled = false;
+
+
+      /* =========================
+         BUTTONS
+      ========================= */
+
+      document.getElementById("backButton").style.display = "block";
+
+      if (type === "menuCake") {
+
+        document.getElementById("nextButton").style.display = "block";
+
+      } else {
+
+        document.getElementById("nextButton").style.display = "none";
+
+      }
+
+    }
+
+
+    /* =========================
+       RAYCASTER
+    ========================= */
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+
+    /* =========================
+       CLICK 3D MODEL
+    ========================= */
+
+    window.addEventListener("click", function(event) {
+
+      if (!bakery) {
+        return;
+      }
+
+      mouse.x =
+        (event.clientX / window.innerWidth) * 2 - 1;
+
+      mouse.y =
+        -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+
+      const intersects = raycaster.intersectObjects(
+        bakery.children,
+        true
+      );
+
+      if (intersects.length === 0) {
+
+        console.log("ไม่เจอ Object");
+        return;
+
+      }
+
+      let clicked = intersects[0].object;
+
+      console.log("Clicked:", clicked.name);
+
+
+      /* =========================
+         CHECK PARENT
+      ========================= */
+
+      while (clicked) {
+
+        console.log("ตรวจชื่อ:", clicked.name);
+
+
+        /* =========================
+           ABOUT ME
+        ========================= */
+
+        if (clicked.name === "About_me") {
+
+          console.log("เจอ About_me แล้ว!");
+
+          const aboutTarget = bakery.getObjectByName("About_me");
+
+          if (aboutTarget) {
+            moveCameraTo(aboutTarget, "about");
+          }
+
+          return;
+
+        }
+
+
+        /* =========================
+           MENU
+        ========================= */
+
+        if (clicked.name === "BtnMenu") {
+
+          console.log("เจอ BtnMenu");
+
+          const menuTarget = bakery.getObjectByName("MenuCake");
+
+          if (menuTarget) {
+            moveCameraTo(menuTarget, "menuCake");
+          }
+
+          return;
+
+        }
+
+
+        /* =========================
+           PORTFOLIO
+        ========================= */
+
+        if (clicked.name === "BtnPortfolio") {
+
+          console.log("เจอ BtnPortfolio");
+
+          window.open(
+            "https://wiphadathabpia.github.io/PortfolioBakery/",
+            "_blank"
+          );
+
+          return;
+
+        }
+
+        clicked = clicked.parent;
+
+      }
+
+    });
+
+
+    /* =========================
+       BACK BUTTON
+    ========================= */
+
+    document.getElementById("backButton").addEventListener(
+      "click",
+      function() {
+
+        /* =========================
+           MENU DONUT → MENU CAKE
+        ========================= */
+
+        if (currentPage === "menuDonut") {
+
+          const cakeTarget = bakery.getObjectByName("MenuCake");
+
+          moveCameraTo(cakeTarget, "menuCake");
+
+          return;
+
+        }
+
+
+        /* =========================
+           RETURN HOME
+        ========================= */
+
+        movingCamera = true;
+
+        startCamera.copy(camera.position);
+        startTarget.copy(controls.target);
+
+        endCamera.copy(homeCameraPosition);
+        endTarget.copy(homeTarget);
+
+        moveStartTime = performance.now();
+
+        currentPage = "home";
+
+        controls.enabled = false;
+
+        document.getElementById("backButton").style.display = "none";
+        document.getElementById("nextButton").style.display = "none";
+
+      }
+    );
+
+
+    /* =========================
+       NEXT BUTTON
+    ========================= */
+
+    document.getElementById("nextButton").addEventListener(
+      "click",
+      function() {
+
+        const donutTarget = bakery.getObjectByName("MenuDonut");
+
+        if (donutTarget) {
+          moveCameraTo(donutTarget, "menuDonut");
+        }
+
+      }
+    );
+
+
+    /* =========================
+       RESIZE
+    ========================= */
+
+    window.addEventListener("resize", function() {
+
+      camera.aspect =
+        window.innerWidth / window.innerHeight;
+
+      camera.updateProjectionMatrix();
+
+      renderer.setSize(
+        window.innerWidth,
+        window.innerHeight
+      );
+
+    });
+
+
+    /* =========================
+       ANIMATION
+    ========================= */
+
+    function animate() {
+
+      requestAnimationFrame(animate);
+
+
+      /* =========================
+         UPDATE OLD SHADER TIME
+      ========================= */
+
+      shaderTime.value = clock.getElapsedTime();
+
+
+      /* =========================
+         UPDATE CLOTH SHADER TIME
+      ========================= */
+
+      const currentTime = clock.getElapsedTime();
+
+      curtainShaders.forEach(function(shader) {
+
+        shader.uniforms.uTime.value = currentTime;
+
+      });
+
+
+      if (movingCamera) {
+
+        const elapsed = performance.now() - moveStartTime;
+
+        let t = Math.min(
+          elapsed / moveDuration,
+          1
+        );
+
+        /* Smooth Step */
+        t = t * t * (3 - 2 * t);
+
+        camera.position.lerpVectors(
+          startCamera,
+          endCamera,
+          t
+        );
+
+        controls.target.lerpVectors(
+          startTarget,
+          endTarget,
+          t
+        );
+
+        camera.lookAt(controls.target);
+
+        if (elapsed >= moveDuration) {
+
+          movingCamera = false;
+          controls.enabled = true;
+
+        }
+
+      } else {
+
+        controls.update();
+
+      }
+
+      renderer.render(scene, camera);
+
+    }
+
+    animate();
+
+  </script>
+
+</body>
+</html>

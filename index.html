@@ -129,8 +129,8 @@
             object.castShadow = true;
             object.receiveShadow = true;
 
-            // เลือกเฉพาะ Cylinder.024 (เค้กชิ้นใหญ่บนหลังคา) เท่านั้น
-            if (object.name === "Cylinder.024") {
+            // ค้นหาก้อนเค้กจากชื่อ
+            if (object.name === "Cylinder.024" || object.name.includes("Cylinder")) {
               targetMesh = object;
               object.material = object.material.clone();
 
@@ -146,8 +146,7 @@
                   `
                   #include <color_fragment>
 
-                  // ปรับตัวเลขคูณ uTime ให้มากขึ้นเพื่อเพิ่มความเร็วในการเปลี่ยนสี
-                  float colorPulse = 0.5 + 0.5 * sin(uTime * 4.0);
+                  float colorPulse = 0.5 + 0.5 * sin(uTime * 1.0);
                   vec3 pinkTint = vec3(1.00, 0.18, 0.48);
                   vec3 orangeTint = vec3(1.00, 0.68, 0.16);
                   vec3 newTint = mix(pinkTint, orangeTint, colorPulse);

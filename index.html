@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 
@@ -180,6 +179,26 @@
 
 
     /* =========================
+       CAMERA VARIABLES
+    ========================= */
+
+    const homeCameraPosition = new THREE.Vector3();
+    const homeTarget = new THREE.Vector3();
+
+    let currentPage = "home";
+    let movingCamera = false;
+    let moveStartTime = 0;
+
+    const startCamera = new THREE.Vector3();
+    const endCamera = new THREE.Vector3();
+
+    const startTarget = new THREE.Vector3();
+    const endTarget = new THREE.Vector3();
+
+    const moveDuration = 1000;
+
+
+    /* =========================
        LOAD GLB
     ========================= */
 
@@ -211,22 +230,21 @@
         });
 
 
-        /* =================================================
-           PLANE.001, PLANE.002, PLANE.003
+        /* =========================
+           PLANE.001
            VERTEX + FRAGMENT SHADER
-        ================================================= */
+        ========================= */
 
         bakery.traverse(function(node) {
 
-          const cleanName = node.name.replace(/\./g, "");
-
           if (
-            ["Plane001", "Plane002", "Plane003"].includes(cleanName) &&
+            node.name === "Plane.001" &&
+            node.isMesh &&
             node.material &&
             node.geometry
           ) {
 
-            // Clone material to keep each awning independent
+            // Clone material
             node.material = node.material.clone();
 
             const geometry = node.geometry;
@@ -239,7 +257,7 @@
             console.log("FOUND CLOTH:", node.name);
 
             console.log(
-              node.name + " vertices:",
+              "Plane.001 vertices:",
               geometry.attributes.position.count
             );
 
@@ -265,8 +283,7 @@
 
               /* =========================
                  VERTEX SHADER
-                 Bottom edge moves more
-                 Top edge stays still
+                 Gentle bottom movement
               ========================= */
 
               shader.vertexShader = `
@@ -276,40 +293,41 @@
               ` + shader.vertexShader;
 
 
-              
-shader.vertexShader = shader.vertexShader.replace(
-  "#include <begin_vertex>",
-  `
-  #include <begin_vertex>
+              shader.vertexShader = shader.vertexShader.replace(
+                "#include <begin_vertex>",
+                `
+                #include <begin_vertex>
 
-  float t = uTime;
+                float t = uTime;
 
-  // Same wave pattern for all awnings
-  float wave1 = sin(position.x * 7.0 + t * 2.0);
-  float wave2 = sin(position.x * 11.0 - t * 1.4);
+                float wave1 = sin(position.x * 7.0 + t * 2.0);
+                float wave2 = sin(position.x * 11.0 - t * 1.4);
 
-  float wave = wave1 * 0.12
-             + wave2 * 0.06;
+                float wave = wave1 * 0.025
+                           + wave2 * 0.012;
 
-  // Keep upper edge still
-  float heightRange = max(uMaxY - uMinY, 0.0001);
+                float heightRange = max(
+                  uMaxY - uMinY,
+                  0.0001
+                );
 
-  float edgeWeight = 1.0 - smoothstep(
-    uMinY,
-    uMinY + heightRange * 0.45,
-    position.y
-  );
+                // Keep the top edge still
+                float edgeWeight = 1.0 - smoothstep(
+                  uMinY,
+                  uMinY + heightRange * 0.20,
+                  position.y
+                );
 
-  transformed.z += wave * edgeWeight;
-  transformed.y += wave * 0.20 * edgeWeight;
-  `
-);
-
+                // Move the bottom edge gently
+                transformed.z += wave * edgeWeight;
+                transformed.y += wave * 0.15 * edgeWeight;
+                `
+              );
 
 
               /* =========================
                  FRAGMENT SHADER
-                 Strong pink and orange
+                 Soft pink and peach orange
               ========================= */
 
               shader.fragmentShader = `
@@ -325,36 +343,35 @@ shader.vertexShader = shader.vertexShader.replace(
                 float colorPulse =
                   0.5 + 0.5 * sin(uTime * 1.5);
 
-                // Strong pink color
+                // Soft pink
                 vec3 pinkTint =
-                  vec3(0.85, 0.01, 0.18);
+                  vec3(1.00, 0.25, 0.48);
 
-                // Strong orange color
+                // Soft peach orange
                 vec3 orangeTint =
-                  vec3(1.00, 0.18, 0.01);
+                  vec3(1.00, 0.48, 0.20);
 
-                // Switch between pink and orange
                 vec3 newTint = mix(
                   pinkTint,
                   orangeTint,
                   colorPulse
                 );
 
-                // Make the Fragment Shader color obvious
+                // Keep shader color clearly visible
                 diffuseColor.rgb = mix(
                   diffuseColor.rgb,
                   newTint,
-                  0.95
+                  0.80
                 );
                 `
               );
 
 
-              console.log(
-                node.name + " Vertex + Fragment Shader applied"
-              );
-
               curtainShaders.push(shader);
+
+              console.log(
+                "Plane.001 Vertex + Fragment Shader applied"
+              );
 
             };
 
@@ -508,26 +525,6 @@ shader.vertexShader = shader.vertexShader.replace(
 
 
     /* =========================
-       CAMERA VARIABLES
-    ========================= */
-
-    const homeCameraPosition = new THREE.Vector3();
-    const homeTarget = new THREE.Vector3();
-
-    let currentPage = "home";
-    let movingCamera = false;
-    let moveStartTime = 0;
-
-    const startCamera = new THREE.Vector3();
-    const endCamera = new THREE.Vector3();
-
-    const startTarget = new THREE.Vector3();
-    const endTarget = new THREE.Vector3();
-
-    const moveDuration = 1000;
-
-
-    /* =========================
        MOVE CAMERA
     ========================= */
 
@@ -611,21 +608,12 @@ shader.vertexShader = shader.vertexShader.replace(
 
       controls.enabled = false;
 
-
-      /* =========================
-         BUTTONS
-      ========================= */
-
       document.getElementById("backButton").style.display = "block";
 
       if (type === "menuCake") {
-
         document.getElementById("nextButton").style.display = "block";
-
       } else {
-
         document.getElementById("nextButton").style.display = "none";
-
       }
 
     }
@@ -663,10 +651,8 @@ shader.vertexShader = shader.vertexShader.replace(
       );
 
       if (intersects.length === 0) {
-
         console.log("ไม่เจอ Object");
         return;
-
       }
 
       let clicked = intersects[0].object;
@@ -753,6 +739,10 @@ shader.vertexShader = shader.vertexShader.replace(
       "click",
       function() {
 
+        if (!bakery) {
+          return;
+        }
+
         /* =========================
            MENU DONUT → MENU CAKE
         ========================= */
@@ -801,6 +791,10 @@ shader.vertexShader = shader.vertexShader.replace(
       "click",
       function() {
 
+        if (!bakery) {
+          return;
+        }
+
         const donutTarget = bakery.getObjectByName("MenuDonut");
 
         if (donutTarget) {
@@ -838,24 +832,12 @@ shader.vertexShader = shader.vertexShader.replace(
 
       requestAnimationFrame(animate);
 
-
-      /* =========================
-         UPDATE OLD SHADER TIME
-      ========================= */
-
-      shaderTime.value = clock.getElapsedTime();
-
-
-      /* =========================
-         UPDATE CLOTH SHADER TIME
-      ========================= */
-
       const currentTime = clock.getElapsedTime();
 
+      shaderTime.value = currentTime;
+
       curtainShaders.forEach(function(shader) {
-
         shader.uniforms.uTime.value = currentTime;
-
       });
 
 
@@ -868,7 +850,6 @@ shader.vertexShader = shader.vertexShader.replace(
           1
         );
 
-        /* Smooth Step */
         t = t * t * (3 - 2 * t);
 
         camera.position.lerpVectors(
@@ -886,16 +867,12 @@ shader.vertexShader = shader.vertexShader.replace(
         camera.lookAt(controls.target);
 
         if (elapsed >= moveDuration) {
-
           movingCamera = false;
           controls.enabled = true;
-
         }
 
       } else {
-
         controls.update();
-
       }
 
       renderer.render(scene, camera);

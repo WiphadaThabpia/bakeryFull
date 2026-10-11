@@ -1,647 +1,156 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Bakery 3D</title>
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bakery 3D - Custom Shader</title>
   <style>
-    html,
-    body {
-      margin: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #FFF4E3;
-      font-family: sans-serif;
-    }
-
-    canvas {
-      display: block;
-    }
-
-    #backButton,
-    #nextButton {
-      position: fixed;
-      z-index: 10;
-      padding: 12px 20px;
-      border: none;
-      border-radius: 10px;
-      background: white;
-      color: #5a3a2e;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-      display: none;
-    }
-
-    #backButton {
-      left: 20px;
-      top: 20px;
-    }
-
-    #nextButton {
-      right: 20px;
-      bottom: 20px;
-    }
-
-    #backButton:hover,
-    #nextButton:hover {
-      transform: scale(1.05);
-    }
+    html, body { height: 100%; margin: 0; overflow: hidden; background: #FFF4E3; }
+    canvas { display: block; }
   </style>
-
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 </head>
-
 <body>
-
-  <button id="backButton">← กลับ</button>
-  <button id="nextButton">Menu Donut →</button>
-
-  <script>
-    /* =========================
-        SCENE
-    ========================= */
-
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xFFF4E3);
-
-
-    /* =========================
-        CAMERA
-    ========================= */
-
-    const camera = new THREE.PerspectiveCamera(
-      45,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    );
-
-
-    /* =========================
-        RENDERER
-    ========================= */
-
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true
-    });
-
-    renderer.setSize(
-      window.innerWidth,
-      window.innerHeight
-    );
-
-    renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio, 2)
-    );
-
-    renderer.outputEncoding = THREE.sRGBEncoding;
-    renderer.shadowMap.enabled = true;
-
-    document.body.appendChild(renderer.domElement);
-
-
-    /* =========================
-        CONTROLS
-    ========================= */
-
-    const controls = new THREE.OrbitControls(
-      camera,
-      renderer.domElement
-    );
-
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.minDistance = 3;
-    controls.maxDistance = 30;
-
-
-    /* =========================
-        LIGHT
-    ========================= */
-
-    const ambientLight = new THREE.AmbientLight(
-      0xffffff,
-      0.45
-    );
-
-    scene.add(ambientLight);
-
-
-    const mainLight = new THREE.SpotLight(
-      0xffffff,
-      2.5
-    );
-
-    mainLight.position.set(8, 10, 12);
-    mainLight.castShadow = true;
-
-    scene.add(mainLight);
-
-
-    const leftLight = new THREE.SpotLight(
-      0xffffff,
-      1.5
-    );
-
-    leftLight.position.set(-8, 6, 8);
-
-    scene.add(leftLight);
-
-
-    const backLight = new THREE.DirectionalLight(
-      0xffffff,
-      0.5
-    );
-
-    backLight.position.set(-5, -5, 8);
-
-    scene.add(backLight);
-
-
-    /* =========================
-        SHADER TIME
-    ========================= */
-
-    const clock = new THREE.Clock();
-
-    const shaderTime = {
-      value: 0
-    };
-
-    const cakeShaders = [];
-
-
-    /* =========================
-        CAMERA VARIABLES
-    ========================= */
-
-    const homeCameraPosition = new THREE.Vector3();
-    const homeTarget = new THREE.Vector3();
-
-    let currentPage = "home";
-    let movingCamera = false;
-    let moveStartTime = 0;
-
-    const startCamera = new THREE.Vector3();
-    const endCamera = new THREE.Vector3();
-
-    const startTarget = new THREE.Vector3();
-    const endTarget = new THREE.Vector3();
-
-    const moveDuration = 1000;
-
-
-    /* =========================
-        LOAD GLB
-    ========================= */
-
-    const loader = new THREE.GLTFLoader();
-
-    let bakery = null;
-
-    loader.load(
-      "Bekery.glb",
-
-      function(gltf) {
-
-        bakery = gltf.scene;
-
-        scene.add(bakery);
-
-
-        /* =========================
-            SHADOW
-        ========================= */
-
-        bakery.traverse(function(object) {
-
-          if (object.isMesh) {
-            object.castShadow = true;
-            object.receiveShadow = true;
-          }
-
-        });
-
-
-        /* =========================
-            CYLINDER.024 (CAKE)
-            VERTEX ROTATION + FRAGMENT SHADER
-        ========================= */
-
-        bakery.traverse(function(node) {
-
-          if (
-            node.name === "Cylinder.024" &&
-            node.isMesh &&
-            node.material &&
-            node.geometry
-          ) {
-
-            // Clone material
-            node.material = node.material.clone();
-
-            console.log("FOUND CAKE:", node.name);
-
-
-            node.material.onBeforeCompile = function(shader) {
-
-              /* =========================
-                  UNIFORMS
-              ========================= */
-
-              shader.uniforms.uTime = {
-                value: 0
-              };
-
-
-              /* =========================
-                  VERTEX SHADER
-                  Spinning Cake around Y-axis
-              ========================= */
-
-              shader.vertexShader = `
-                uniform float uTime;
-              ` + shader.vertexShader;
-
-
-              shader.vertexShader = shader.vertexShader.replace(
-                "#include <begin_vertex>",
-                `
-                #include <begin_vertex>
-
-                // ความเร็วในการหมุนรอบตัวเอง
-                float angle = uTime * 0.8;
-
-                // สร้าง Rotation Matrix หมุนรอบแกน Y
-                float c = cos(angle);
-                float s = sin(angle);
-                mat2 rot = mat2(c, -s, s, c);
-
-                // หมุนตำแหน่ง X และ Z ของ Vertex เค้ก
-                transformed.xz = rot * transformed.xz;
-                `
-              );
-
-
-              /* =========================
-                  FRAGMENT SHADER
-                  Soft color shifting
-              ========================= */
-
-              shader.fragmentShader = `
-                uniform float uTime;
-              ` + shader.fragmentShader;
-
-
-              shader.fragmentShader = shader.fragmentShader.replace(
-                "#include <color_fragment>",
-                `
-                #include <color_fragment>
-
-                float colorPulse = 0.5 + 0.5 * sin(uTime * 1.0);
-
-                vec3 pinkTint = vec3(1.00, 0.18, 0.48);
-                vec3 orangeTint = vec3(1.00, 0.68, 0.16);
-
-                vec3 newTint = mix(pinkTint, orangeTint, colorPulse);
-
-                diffuseColor.rgb = mix(diffuseColor.rgb, newTint, 0.4);
-                `
-              );
-
-
-              cakeShaders.push(shader);
-
-              console.log("Cylinder.024 Vertex + Fragment Shader applied");
-
-            };
-
-            node.material.side = THREE.DoubleSide;
-            node.material.needsUpdate = true;
-
-          }
-
-        });
-
-
-        /* =========================
-            MODEL SIZE
-        ========================= */
-
-        const box = new THREE.Box3()
-          .setFromObject(bakery);
-
-        const size = box.getSize(
-          new THREE.Vector3()
-        );
-
-        const center = box.getCenter(
-          new THREE.Vector3()
-        );
-
-
-        /* =========================
-            HOME CAMERA
-        ========================= */
-
-        camera.position.set(
-          box.max.x + size.x * 1.6,
-          center.y,
-          center.z + size.z * 0.15
-        );
-
-        controls.target.set(
-          center.x,
-          center.y,
-          center.z
-        );
-
-        camera.lookAt(controls.target);
-
-
-        /* =========================
-            SAVE HOME CAMERA
-        ========================= */
-
-        homeCameraPosition.copy(camera.position);
-        homeTarget.copy(controls.target);
-
-      },
-
-      undefined,
-
-      function(error) {
-
-        console.error("โหลด Bakery ไม่สำเร็จ", error);
-
-      }
-    );
-
-
-    /* =========================
-        MOVE CAMERA
-    ========================= */
-
-    function moveCameraTo(targetObject, type) {
-
-      if (!targetObject) {
-        return;
-      }
-
-      const targetPosition = new THREE.Vector3();
-      targetObject.getWorldPosition(targetPosition);
-
-      startCamera.copy(camera.position);
-      startTarget.copy(controls.target);
-      endTarget.copy(targetPosition);
-
-
-      if (type === "about") {
-
-        const direction = new THREE.Vector3()
-          .subVectors(homeCameraPosition, homeTarget)
-          .normalize();
-
-        endCamera.copy(targetPosition);
-        endCamera.add(direction.multiplyScalar(4));
-        currentPage = "about";
-
-      } else if (type === "menuCake") {
-
-        endCamera.set(
-          targetPosition.x + 2.5,
-          targetPosition.y,
-          targetPosition.z + 0.4
-        );
-        currentPage = "menuCake";
-
-      } else if (type === "menuDonut") {
-
-        endCamera.set(
-          targetPosition.x + 2.5,
-          targetPosition.y,
-          targetPosition.z + 0.4
-        );
-        currentPage = "menuDonut";
-
-      }
-
-
-      movingCamera = true;
-      moveStartTime = performance.now();
-      controls.enabled = false;
-
-      document.getElementById("backButton").style.display = "block";
-
-      if (type === "menuCake") {
-        document.getElementById("nextButton").style.display = "block";
-      } else {
-        document.getElementById("nextButton").style.display = "none";
-      }
-
+<script>
+  // Scene / Camera / Renderer
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xFFF4E3);
+
+  const camera = new THREE.PerspectiveCamera(
+    45,
+    innerWidth / innerHeight,
+    0.1,
+    1000
+  );
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.shadowMap.enabled = true;
+  document.body.appendChild(renderer.domElement);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+
+  // Uniforms สำหรับส่งค่าเวลาเข้า Shader
+  const uniforms = {
+    uTime: { value: 0.0 },
+    uLightDir: { value: new THREE.Vector3(0.4, 1.0, 0.8).normalize() }
+  };
+
+  // Vertex Shader สำหรับหมุนรอบแกน Y (Cylinder.024)
+  const cakeVertexShader = `
+    uniform float uTime;
+    varying vec2 vUv;
+    varying vec3 vNormal;
+
+    void main() {
+      vUv = uv;
+      vNormal = normal;
+
+      vec3 pos = position;
+
+      // ความเร็วและมุมในการหมุนรอบแกน Y
+      float angle = uTime * 0.8;
+      float c = cos(angle);
+      float s = sin(angle);
+      mat2 rot = mat2(c, -s, s, c);
+
+      // หมุนตำแหน่ง X และ Z ของ Vertex
+      pos.xz = rot * pos.xz;
+
+      gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(pos, 1.0);
     }
+  `;
 
+  // Fragment Shader สำหรับสลับเฉดสี ชมพู - พีช
+  const cakeFragmentShader = `
+    precision mediump float;
 
-    /* =========================
-        RAYCASTER
-    ========================= */
+    uniform float uTime;
+    varying vec2 vUv;
+    varying vec3 vNormal;
 
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
+    void main() {
+      // สร้างจังหวะการเปลี่ยนสีด้วย sin
+      float colorPulse = 0.5 + 0.5 * sin(uTime * 1.0);
 
+      vec3 pinkTint = vec3(1.00, 0.18, 0.48);
+      vec3 orangeTint = vec3(1.00, 0.68, 0.16);
+      vec3 baseColor = mix(pinkTint, orangeTint, colorPulse);
 
-    /* =========================
-        CLICK 3D MODEL
-    ========================= */
+      // แสงเงาเบื้องต้น (Lambert diffuse)
+      vec3 N = normalize(vNormal);
+      vec3 L = normalize(vec3(0.4, 1.0, 0.8));
+      float diffuse = max(dot(N, L), 0.0);
+      float ambient = clamp(diffuse * 4.0, 0.4, 1.0);
 
-    window.addEventListener("click", function(event) {
-
-      if (!bakery) {
-        return;
-      }
-
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-      raycaster.setFromCamera(mouse, camera);
-
-      const intersects = raycaster.intersectObjects(
-        bakery.children,
-        true
-      );
-
-      if (intersects.length === 0) {
-        return;
-      }
-
-      let clicked = intersects[0].object;
-
-      while (clicked) {
-
-        if (clicked.name === "About_me") {
-          const aboutTarget = bakery.getObjectByName("About_me");
-          if (aboutTarget) {
-            moveCameraTo(aboutTarget, "about");
-          }
-          return;
-        }
-
-        if (clicked.name === "BtnMenu") {
-          const menuTarget = bakery.getObjectByName("MenuCake");
-          if (menuTarget) {
-            moveCameraTo(menuTarget, "menuCake");
-          }
-          return;
-        }
-
-        if (clicked.name === "BtnPortfolio") {
-          window.open(
-            "https://wiphadathabpia.github.io/PortfolioBakery/",
-            "_blank"
-          );
-          return;
-        }
-
-        clicked = clicked.parent;
-
-      }
-
-    });
-
-
-    /* =========================
-        BACK BUTTON
-    ========================= */
-
-    document.getElementById("backButton").addEventListener(
-      "click",
-      function() {
-
-        if (!bakery) {
-          return;
-        }
-
-        if (currentPage === "menuDonut") {
-          const cakeTarget = bakery.getObjectByName("MenuCake");
-          moveCameraTo(cakeTarget, "menuCake");
-          return;
-        }
-
-        movingCamera = true;
-        startCamera.copy(camera.position);
-        startTarget.copy(controls.target);
-        endCamera.copy(homeCameraPosition);
-        endTarget.copy(homeTarget);
-        moveStartTime = performance.now();
-        currentPage = "home";
-        controls.enabled = false;
-
-        document.getElementById("backButton").style.display = "none";
-        document.getElementById("nextButton").style.display = "none";
-
-      }
-    );
-
-
-    /* =========================
-        NEXT BUTTON
-    ========================= */
-
-    document.getElementById("nextButton").addEventListener(
-      "click",
-      function() {
-
-        if (!bakery) {
-          return;
-        }
-
-        const donutTarget = bakery.getObjectByName("MenuDonut");
-        if (donutTarget) {
-          moveCameraTo(donutTarget, "menuDonut");
-        }
-
-      }
-    );
-
-
-    /* =========================
-        RESIZE
-    ========================= */
-
-    window.addEventListener("resize", function() {
-
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-
-    });
-
-
-    /* =========================
-        ANIMATION
-    ========================= */
-
-    function animate() {
-
-      requestAnimationFrame(animate);
-
-      const currentTime = clock.getElapsedTime();
-
-      shaderTime.value = currentTime;
-
-      cakeShaders.forEach(function(shader) {
-        shader.uniforms.uTime.value = currentTime;
-      });
-
-
-      if (movingCamera) {
-
-        const elapsed = performance.now() - moveStartTime;
-
-        let t = Math.min(
-          elapsed / moveDuration,
-          1
-        );
-
-        t = t * t * (3 - 2 * t);
-
-        camera.position.lerpVectors(
-          startCamera,
-          endCamera,
-          t
-        );
-
-        controls.target.lerpVectors(
-          startTarget,
-          endTarget,
-          t
-        );
-
-        camera.lookAt(controls.target);
-
-        if (elapsed >= moveDuration) {
-          movingCamera = false;
-          controls.enabled = true;
-        }
-
-      } else {
-        controls.update();
-      }
-
-      renderer.render(scene, camera);
-
+      vec3 finalColor = baseColor * ambient;
+      gl_FragColor = vec4(finalColor, 1.0);
     }
+  `;
 
-    animate();
+  const cakeMaterial = new THREE.ShaderMaterial({
+    vertexShader: cakeVertexShader,
+    fragmentShader: cakeFragmentShader,
+    uniforms: uniforms,
+    side: THREE.DoubleSide
+  });
 
-  </script>
+  // โหลดโมเดล Bakery.glb
+  const loader = new THREE.GLTFLoader();
+  let bakery = null;
 
+  loader.load('Bekery.glb', function(gltf) {
+    bakery = gltf.scene;
+    scene.add(bakery);
+
+    bakery.traverse(function(node) {
+      if (node.isMesh) {
+        node.castShadow = true;
+        node.receiveShadow = true;
+
+        // แทนที่ Material ของก้อนเค้กชิ้นใหญ่ (Cylinder.024) ด้วย Shader ของเรา
+        if (node.name === "Cylinder.024") {
+          node.material = cakeMaterial;
+          console.log("Applied custom shader to Cylinder.024");
+        }
+      }
+    });
+
+    // ตั้งค่ากล้องให้มองมาที่โมเดล
+    const box = new THREE.Box3().setFromObject(bakery);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+
+    camera.position.set(box.max.x + size.x * 1.6, center.y, center.z + size.z * 0.15);
+    controls.target.copy(center);
+    controls.update();
+  });
+
+  // ปรับขนาดหน้าจออัตโนมัติ
+  addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  });
+
+  // ลูปการทำงาน (Animation Loop)
+  function animate(time) {
+    requestAnimationFrame(animate);
+
+    // อัปเดตเวลาให้ Shader
+    uniforms.uTime.value = time * 0.001;
+
+    controls.update();
+    renderer.render(scene, camera);
+  }
+
+  requestAnimationFrame(animate);
+</script>
 </body>
 </html>

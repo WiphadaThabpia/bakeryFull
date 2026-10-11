@@ -225,7 +225,7 @@
             phase: 0.0
           },
 
-          Plane004: {
+          Plane002: {
             strength: 0.075,
             frequency: 11.0,
             speed: 2.0,
@@ -235,7 +235,7 @@
           Plane003: {
             strength: 0.09,
             frequency: 8.0,
-            speed: 2.8,
+            speed: 2.5,
             phase: 4.0
           }
 
@@ -347,9 +347,9 @@
                   );
 
                   float wave = (
-                    wave1 * 0.60 +
-                    wave2 * 0.25 +
-                    wave3 * 0.15
+                    wave1 * 0.45 +
+                    wave2 * 0.20 +
+                    wave3 * 0.10
                   ) * uStrength;
 
                   // Reduce movement near the upper local-Y edge
@@ -385,14 +385,14 @@
                   float colorPulse =
                     0.5 + 0.5 * sin(uTime * 1.5);
 
-                  vec3 pinkTint =
-                    vec3(1.0, 0.25, 0.50);
+                 vec3 pinkColor = vec3(0.75, 0.05, 0.20);
+                 vec3 orangeColor = vec3(0.85, 0.25, 0.05);
 
-                  vec3 orangeTint =
-                    vec3(1.0, 0.65, 0.25);
+                 vec3 tint = mix(pinkColor, orangeColor, colorPulse);
 
-                  vec3 newTint =
-                    mix(pinkTint, orangeTint, colorPulse);
+                 gl_FragColor = vec4(
+                 mix(diffuseColor.rgb, tint, 0.75),
+                 diffuseColor.a
 
                   diffuseColor.rgb =
                     mix(diffuseColor.rgb, newTint, 0.5);

@@ -87,6 +87,7 @@
 
   <script>
 
+
     /* =========================
        SCENE
     ========================= */
@@ -260,268 +261,250 @@
 
 
         /* =================================================
-           PLANE.001 CLOTH VERTEX SHADER
+           PLANE.001, PLANE.002, PLANE.003 CLOTH SHADERS
         ================================================= */
 
         bakery.traverse(function(node) {
 
-          const cleanName =
-            node.name.replace(/\./g, "");
-
+          const cleanName = node.name.replace(/\./g, "");
 
           if (
-            cleanName === "Plane001" &&
-            node.material
+            ["Plane001", "Plane002", "Plane003"].includes(cleanName) &&
+            node.material &&
+            node.geometry
           ) {
 
-            const geometry =
-              node.geometry;
+            // Keep each awning's shader settings separate
+            node.material = node.material.clone();
 
+            const geometry = node.geometry;
 
             geometry.computeBoundingBox();
 
+            const minY = geometry.boundingBox.min.y;
 
-            const minY =
-              geometry.boundingBox.min.y;
+            const maxY = geometry.boundingBox.max.y;
 
 
-            const maxY =
-              geometry.boundingBox.max.y;
-
+            console.log("FOUND CLOTH:", node.name);
 
             console.log(
-              "FOUND CLOTH:",
-              node.name
-            );
-
-
-            console.log(
-              "Plane001 vertices:",
+              node.name + " vertices:",
               geometry.attributes.position.count
             );
 
 
-            console.log(
-              "minY:",
-              minY
-            );
+            node.material.onBeforeCompile = function(shader) {
 
 
-            console.log(
-              "maxY:",
-              maxY
-            );
+              /* =========================
+                 UNIFORMS
+              ========================= */
+
+              shader.uniforms.uTime = {
+                value: 0
+              };
+
+              shader.uniforms.uMinY = {
+                value: minY
+              };
+
+              shader.uniforms.uMaxY = {
+                value: maxY
+              };
 
 
-            node.material.onBeforeCompile =
-              function(shader) {
+              /* =========================
+                 VERTEX SHADER
+              ========================= */
+
+              shader.vertexShader = `
+
+                uniform float uTime;
+                uniform float uMinY;
+                uniform float uMaxY;
+
+              ` + shader.vertexShader;
 
 
-                /* =========================
-                   UNIFORMS
-                ========================= */
+              shader.vertexShader =
+                shader.vertexShader.replace(
 
-                shader.uniforms.uTime = {
-                  value: 0
-                };
+                  "#include <begin_vertex>",
 
+                  `
 
-                shader.uniforms.uMinY = {
-                  value: minY
-                };
+                  #include <begin_vertex>
 
 
-                shader.uniforms.uMaxY = {
-                  value: maxY
-                };
+                  float t = uTime;
 
 
-                /* =========================
-                   ADD UNIFORMS
-                ========================= */
+                  /* Calculate normalized height */
 
-                shader.vertexShader = `
-
-                  uniform float uTime;
-                  uniform float uMinY;
-                  uniform float uMaxY;
-
-                ` + shader.vertexShader;
-
-
-                /* =========================
-                   VERTEX SHADER
-                ========================= */
-
-                shader.vertexShader =
-                  shader.vertexShader.replace(
-
-                    "#include <begin_vertex>",
-
-                    `
-
-                    #include <begin_vertex>
-
-
-                    float t = uTime;
-
-
-                    /* =========================
-                       0 = ล่างสุด
-                       1 = บนสุด
-                    ========================= */
-
-                    float height01 =
-                      clamp(
-                        (position.y - uMinY) /
-                        max(uMaxY - uMinY, 0.001),
-                        0.0,
-                        1.0
-                      );
-
-
-                    /* =========================
-                       ด้านล่างพริ้วมากกว่า
-                    ========================= */
-
-                    float bottom =
-                      1.0 - height01;
-
-
-                    float movement =
-                      pow(bottom, 1.6);
-
-
-                    /* =========================
-                       คลื่นใหญ่
-                    ========================= */
-
-                    float wave1 =
-                      sin(
-                        position.x * 4.0 +
-                        position.y * 4.0 +
-                        t * 1.8
-                      );
-
-
-                    /* =========================
-                       คลื่นรอง
-                    ========================= */
-
-                    float wave2 =
-                      sin(
-                        position.x * 8.0 +
-                        position.y * 6.0 +
-                        t * 2.5
-                      );
-
-
-                    /* =========================
-                       คลื่นละเอียด
-                    ========================= */
-
-                    float wave3 =
-                      sin(
-                        position.x * 15.0 +
-                        position.y * 9.0 +
-                        t * 4.0
-                      );
-
-
-                    /* =========================
-                       รวมคลื่น
-                    ========================= */
-
-                    float wave =
-                      wave1 * 0.16 +
-                      wave2 * 0.07 +
-                      wave3 * 0.02;
-
-
-                    /* =========================
-                       พริ้วซ้าย-ขวา
-                    ========================= */
-
-                    transformed.x +=
-                      wave * movement;
-
-
-                    /* =========================
-                       พริ้วเข้า-ออก
-                    ========================= */
-
-                    transformed.z +=
-                      wave * 0.5 * movement;
-
-
-                    /* =========================
-                       ขยับขึ้นลงเล็กน้อย
-                    ========================= */
-
-                    transformed.y +=
-                      sin(
-                        position.x * 6.0 +
-                        t * 2.0
-                      ) *
-                      0.04 *
-                      movement;
-
-
-                    /* =========================
-                       ปลายล่างพริ้วเพิ่ม
-                    ========================= */
-
-                    float edge =
-                      smoothstep(
-                        0.5,
-                        1.0,
-                        bottom
-                      );
-
-
-                    transformed.x +=
-                      sin(
-                        position.x * 10.0 +
-                        t * 3.0
-                      ) *
-                      0.05 *
-                      edge;
-
-
-                    transformed.z +=
-                      cos(
-                        position.x * 8.0 +
-                        t * 2.5
-                      ) *
-                      0.03 *
-                      edge;
-
-                    `
+                  float height01 = clamp(
+                    (position.y - uMinY) /
+                    max(uMaxY - uMinY, 0.001),
+                    0.0,
+                    1.0
                   );
 
 
-                console.log(
-                  "Plane001 vertex animation applied"
+                  /* Make the lower edge move more */
+
+                  float bottom = 1.0 - height01;
+
+                  float movement = pow(bottom, 1.6);
+
+
+                  /* Main wave */
+
+                  float wave1 = sin(
+                    position.x * 4.0 +
+                    position.y * 4.0 +
+                    t * 1.8
+                  );
+
+
+                  /* Secondary wave */
+
+                  float wave2 = sin(
+                    position.x * 8.0 +
+                    position.y * 6.0 +
+                    t * 2.5
+                  );
+
+
+                  /* Fine wave */
+
+                  float wave3 = sin(
+                    position.x * 15.0 +
+                    position.y * 9.0 +
+                    t * 4.0
+                  );
+
+
+                  /* Combine waves */
+
+                  float wave =
+                    wave1 * 0.16 +
+                    wave2 * 0.07 +
+                    wave3 * 0.02;
+
+
+                  /* Move left and right */
+
+                  transformed.x +=
+                    wave * movement;
+
+
+                  /* Move inward and outward */
+
+                  transformed.z +=
+                    wave * 0.5 * movement;
+
+
+                  /* Slight vertical movement */
+
+                  transformed.y +=
+                    sin(
+                      position.x * 6.0 +
+                      t * 2.0
+                    ) *
+                    0.04 *
+                    movement;
+
+
+                  /* Extra movement along the lower edge */
+
+                  float edge = smoothstep(
+                    0.5,
+                    1.0,
+                    bottom
+                  );
+
+
+                  transformed.x +=
+                    sin(
+                      position.x * 10.0 +
+                      t * 3.0
+                    ) *
+                    0.05 *
+                    edge;
+
+
+                  transformed.z +=
+                    cos(
+                      position.x * 8.0 +
+                      t * 2.5
+                    ) *
+                    0.03 *
+                    edge;
+
+                  `
+
                 );
 
 
-                curtainShaders.push(
-                  shader
+              /* =========================
+                 FRAGMENT SHADER
+                 Subtle animated warm tint
+              ========================= */
+
+              shader.fragmentShader = `
+
+                uniform float uTime;
+
+              ` + shader.fragmentShader;
+
+
+              shader.fragmentShader =
+                shader.fragmentShader.replace(
+
+                  "#include <color_fragment>",
+
+                  `
+
+                  #include <color_fragment>
+
+
+                  float colorPulse =
+                    0.5 + 0.5 * sin(uTime * 1.5);
+
+
+                  vec3 warmTint =
+                    diffuseColor.rgb *
+                    vec3(1.0, 0.96, 0.90);
+
+
+                  diffuseColor.rgb = mix(
+                    diffuseColor.rgb,
+                    warmTint,
+                    colorPulse * 0.15
+                  );
+
+                  `
+
                 );
 
-              };
+
+              console.log(
+                node.name + " Vertex + Fragment Shader applied"
+              );
+
+
+              curtainShaders.push(shader);
+
+            };
 
 
             /* =========================
                DOUBLE SIDE
             ========================= */
 
-            node.material.side =
-              THREE.DoubleSide;
+            node.material.side = THREE.DoubleSide;
 
-
-            node.material.needsUpdate =
-              true;
+            node.material.needsUpdate = true;
 
           }
 
@@ -624,7 +607,9 @@
 
       },
 
+
       undefined,
+
 
       function(error) {
 
@@ -634,6 +619,7 @@
         );
 
       }
+
     );
 
 
@@ -822,6 +808,7 @@
           targetPosition.z + 0.4
         );
 
+
         currentPage = "menuCake";
 
       }
@@ -839,6 +826,7 @@
           targetPosition.z + 0.4
         );
 
+
         currentPage = "menuDonut";
 
       }
@@ -846,8 +834,10 @@
 
       movingCamera = true;
 
+
       moveStartTime =
         performance.now();
+
 
       controls.enabled = false;
 
@@ -868,6 +858,7 @@
           .style.display = "block";
 
       }
+
       else {
 
         document
@@ -906,6 +897,7 @@
         mouse.x =
           (event.clientX /
             window.innerWidth) * 2 - 1;
+
 
         mouse.y =
           -(event.clientY /
@@ -1194,6 +1186,7 @@
           window.innerWidth /
           window.innerHeight;
 
+
         camera.updateProjectionMatrix();
 
 
@@ -1294,6 +1287,7 @@
         }
 
       }
+
       else {
 
         controls.update();
@@ -1310,6 +1304,7 @@
 
 
     animate();
+
 
   </script>
 

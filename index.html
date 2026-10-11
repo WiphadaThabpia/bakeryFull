@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 
@@ -283,7 +284,7 @@
 
               /* =========================
                  VERTEX SHADER
-                 Gentle bottom movement
+                 Gentle Wind Animation
               ========================= */
 
               shader.vertexShader = `
@@ -300,34 +301,40 @@
 
                 float t = uTime;
 
-                float wave1 = sin(position.x * 7.0 + t * 2.0);
-                float wave2 = sin(position.x * 11.0 - t * 1.4);
+                // คลื่นลมหลายจังหวะเพื่อให้ผ้าพลิ้วเป็นธรรมชาติ
+                float wave1 = sin(position.x * 3.8 + t * 1.15);
+                float wave2 = sin(position.x * 6.2 - t * 0.82 + 0.7);
+                float wave3 = sin(position.x * 2.1 + t * 0.55);
 
-                float wave = wave1 * 0.025
-                           + wave2 * 0.012;
+                // ความแรงของการขยับ ปรับได้ตรงตัวเลขเหล่านี้
+                float wave = wave1 * 0.018
+                           + wave2 * 0.008
+                           + wave3 * 0.005;
 
                 float heightRange = max(
                   uMaxY - uMinY,
                   0.0001
                 );
 
-                // Keep the top edge still
+                // ให้ขอบด้านบนอยู่นิ่ง และขยับมากขึ้นบริเวณชายผ้า
                 float edgeWeight = 1.0 - smoothstep(
                   uMinY,
                   uMinY + heightRange * 0.20,
                   position.y
                 );
 
-                // Move the bottom edge gently
+                // ขยับผ้าเบา ๆ ไม่ให้สะบัดแรงเกินไป
                 transformed.z += wave * edgeWeight;
-                transformed.y += wave * 0.15 * edgeWeight;
+                transformed.y += wave * 0.08 * edgeWeight;
+                transformed.x += sin(t * 0.7 + position.x * 2.5)
+                               * 0.003 * edgeWeight;
                 `
               );
 
 
               /* =========================
                  FRAGMENT SHADER
-                 Soft pink and peach orange
+                 Adjustable Color Shades
               ========================= */
 
               shader.fragmentShader = `
@@ -340,28 +347,30 @@
                 `
                 #include <color_fragment>
 
+                // ความเร็วในการเปลี่ยนเฉดสี
                 float colorPulse =
-                  0.5 + 0.5 * sin(uTime * 1.5);
+                  0.5 + 0.5 * sin(uTime * 0.65);
 
-                // Soft pink
+                // สีชมพูอ่อน
                 vec3 pinkTint =
-                  vec3(1.00, 0.25, 0.48);
+                  vec3(1.00, 0.48, 0.62);
 
-                // Soft peach orange
-                vec3 orangeTint =
-                  vec3(1.00, 0.48, 0.20);
+                // สีส้มพีช
+                vec3 peachTint =
+                  vec3(1.00, 0.66, 0.42);
 
+                // ไล่สีชมพูและส้มพีชอย่างนุ่มนวล
                 vec3 newTint = mix(
                   pinkTint,
-                  orangeTint,
+                  peachTint,
                   colorPulse
                 );
 
-                // Keep shader color clearly visible
+                // ผสมสีใหม่กับสีวัสดุเดิม
                 diffuseColor.rgb = mix(
                   diffuseColor.rgb,
                   newTint,
-                  0.80
+                  0.68
                 );
                 `
               );

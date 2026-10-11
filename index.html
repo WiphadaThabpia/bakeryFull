@@ -166,14 +166,16 @@
 
 
     /* =========================
-        ANIMATION VARIABLES
+        SHADER TIME
     ========================= */
 
     const clock = new THREE.Clock();
-    let clothMesh = null;
-    let originalPositions = null;
-    let clothMinY = 0;
-    let clothMaxY = 0;
+
+    const shaderTime = {
+      value: 0
+    };
+
+    const cakeShaders = [];
 
 
     /* =========================
@@ -229,35 +231,101 @@
 
 
         /* =========================
-            PLANE.001 (CLOTH) SETUP
+            CYLINDER.024 (CAKE)
+            VERTEX ROTATION + FRAGMENT SHADER
         ========================= */
 
         bakery.traverse(function(node) {
 
-          if (node.name === "Plane.001" && node.isMesh && node.geometry) {
+          if (
+            node.name === "Cylinder.024" &&
+            node.isMesh &&
+            node.material &&
+            node.geometry
+          ) {
 
-            clothMesh = node;
-            
-            // Clone geometry เพื่อไม่ให้กระทบชิ้นอื่น
-            clothMesh.geometry = node.geometry.clone();
-            const geometry = clothMesh.geometry;
+            // Clone material
+            node.material = node.material.clone();
 
-            geometry.computeBoundingBox();
-            clothMinY = geometry.boundingBox.min.y;
-            clothMaxY = geometry.boundingBox.max.y;
+            console.log("FOUND CAKE:", node.name);
 
-            // บันทึกตำแหน่งตั้งต้นของ Vertex ทุกตัว
-            const positionAttribute = geometry.attributes.position;
-            originalPositions = new Float32Array(positionAttribute.array);
 
-            // ตั้งค่า Material ให้แสดงผลสองด้าน
-            if (node.material) {
-              node.material = node.material.clone();
-              node.material.side = THREE.DoubleSide;
-              node.material.needsUpdate = true;
-            }
+            node.material.onBeforeCompile = function(shader) {
 
-            console.log("Found Plane.001 for JS Animation, vertices count:", positionAttribute.count);
+              /* =========================
+                  UNIFORMS
+              ========================= */
+
+              shader.uniforms.uTime = {
+                value: 0
+              };
+
+
+              /* =========================
+                  VERTEX SHADER
+                  Spinning Cake around Y-axis
+              ========================= */
+
+              shader.vertexShader = `
+                uniform float uTime;
+              ` + shader.vertexShader;
+
+
+              shader.vertexShader = shader.vertexShader.replace(
+                "#include <begin_vertex>",
+                `
+                #include <begin_vertex>
+
+                // ความเร็วในการหมุนรอบตัวเอง
+                float angle = uTime * 0.8;
+
+                // สร้าง Rotation Matrix หมุนรอบแกน Y
+                float c = cos(angle);
+                float s = sin(angle);
+                mat2 rot = mat2(c, -s, s, c);
+
+                // หมุนตำแหน่ง X และ Z ของ Vertex เค้ก
+                transformed.xz = rot * transformed.xz;
+                `
+              );
+
+
+              /* =========================
+                  FRAGMENT SHADER
+                  Soft color shifting
+              ========================= */
+
+              shader.fragmentShader = `
+                uniform float uTime;
+              ` + shader.fragmentShader;
+
+
+              shader.fragmentShader = shader.fragmentShader.replace(
+                "#include <color_fragment>",
+                `
+                #include <color_fragment>
+
+                float colorPulse = 0.5 + 0.5 * sin(uTime * 1.0);
+
+                vec3 pinkTint = vec3(1.00, 0.18, 0.48);
+                vec3 orangeTint = vec3(1.00, 0.68, 0.16);
+
+                vec3 newTint = mix(pinkTint, orangeTint, colorPulse);
+
+                diffuseColor.rgb = mix(diffuseColor.rgb, newTint, 0.4);
+                `
+              );
+
+
+              cakeShaders.push(shader);
+
+              console.log("Cylinder.024 Vertex + Fragment Shader applied");
+
+            };
+
+            node.material.side = THREE.DoubleSide;
+            node.material.needsUpdate = true;
+
           }
 
         });
@@ -334,28 +402,37 @@
       startTarget.copy(controls.target);
       endTarget.copy(targetPosition);
 
+
       if (type === "about") {
+
         const direction = new THREE.Vector3()
           .subVectors(homeCameraPosition, homeTarget)
           .normalize();
+
         endCamera.copy(targetPosition);
         endCamera.add(direction.multiplyScalar(4));
         currentPage = "about";
+
       } else if (type === "menuCake") {
+
         endCamera.set(
           targetPosition.x + 2.5,
           targetPosition.y,
           targetPosition.z + 0.4
         );
         currentPage = "menuCake";
+
       } else if (type === "menuDonut") {
+
         endCamera.set(
           targetPosition.x + 2.5,
           targetPosition.y,
           targetPosition.z + 0.4
         );
         currentPage = "menuDonut";
+
       }
+
 
       movingCamera = true;
       moveStartTime = performance.now();
@@ -508,54 +585,45 @@
 
 
     /* =========================
-        ANIMATION LOOP
+        ANIMATION
     ========================= */
 
     function animate() {
 
       requestAnimationFrame(animate);
 
-      const t = clock.getElapsedTime();
+      const currentTime = clock.getElapsedTime();
 
-      // ขยับ Vertex ของกันสาด (Plane.001) แบบสดๆ ผ่าน JavaScript
-      if (clothMesh && originalPositions) {
-        const positionAttribute = clothMesh.geometry.attributes.position;
-        const heightRange = Math.max(clothMaxY - clothMinY, 0.0001);
+      shaderTime.value = currentTime;
 
-        for (let i = 0; i < positionAttribute.count; i++) {
-          const ox = originalPositions[i * 3];
-          const oy = originalPositions[i * 3 + 1];
-          const oz = originalPositions[i * 3 + 2];
-
-          // คำนวณคลื่นลม
-          const wave1 = Math.sin(ox * 4.0 + t * 2.0);
-          const wave2 = Math.sin(oz * 3.0 - t * 1.5);
-          const wave = (wave1 * 0.08 + wave2 * 0.04);
-
-          // ให้ขอบบนนิ่ง ขอบล่างพริ้วมาก
-          const edgeWeight = 1.0 - Math.max(0, Math.min(1, (oy - clothMinY) / heightRange));
-
-          // อัปเดตตำแหน่งแกน Z และ Y
-          positionAttribute.setXYZ(
-            i,
-            ox,
-            oy + wave * 0.1 * edgeWeight,
-            oz + wave * edgeWeight
-          );
-        }
-
-        positionAttribute.needsUpdate = true;
-      }
+      cakeShaders.forEach(function(shader) {
+        shader.uniforms.uTime.value = currentTime;
+      });
 
 
       if (movingCamera) {
 
         const elapsed = performance.now() - moveStartTime;
-        let p = Math.min(elapsed / moveDuration, 1);
-        p = p * p * (3 - 2 * p);
 
-        camera.position.lerpVectors(startCamera, endCamera, p);
-        controls.target.lerpVectors(startTarget, endTarget, p);
+        let t = Math.min(
+          elapsed / moveDuration,
+          1
+        );
+
+        t = t * t * (3 - 2 * t);
+
+        camera.position.lerpVectors(
+          startCamera,
+          endCamera,
+          t
+        );
+
+        controls.target.lerpVectors(
+          startTarget,
+          endTarget,
+          t
+        );
+
         camera.lookAt(controls.target);
 
         if (elapsed >= moveDuration) {

@@ -294,36 +294,41 @@
               ` + shader.vertexShader;
 
 
-              shader.vertexShader = shader.vertexShader.replace(
-                "#include <begin_vertex>",
-                `
-                #include <begin_vertex>
+              
+shader.vertexShader = shader.vertexShader.replace(
+  "#include <begin_vertex>",
+  `
+  #include <begin_vertex>
 
-                float t = uTime;
+  float t = uTime;
 
-                float wave1 = sin(position.x * 7.0 + t * 2.0);
-                float wave2 = sin(position.x * 11.0 - t * 1.4);
+  float wave1 = sin(position.x * 4.0 + t * 1.4);
+  float wave2 = sin(position.x * 7.0 - t * 1.0 + 0.6);
+  float wave3 = sin(position.z * 3.0 + t * 0.7);
 
-                float wave = wave1 * 0.025
-                           + wave2 * 0.012;
+  // เพิ่มระยะขยับให้เห็นชัด แต่ยังเป็นลมเบา ๆ
+  float wave = wave1 * 0.075
+             + wave2 * 0.035
+             + wave3 * 0.015;
 
-                float heightRange = max(
-                  uMaxY - uMinY,
-                  0.0001
-                );
+  float heightRange = max(
+    uMaxY - uMinY,
+    0.0001
+  );
 
-                // Keep the top edge still
-                float edgeWeight = 1.0 - smoothstep(
-                  uMinY,
-                  uMinY + heightRange * 0.20,
-                  position.y
-                );
+  // ให้ชายผ้าขยับมาก และขอบบนค่อย ๆ อยู่นิ่ง
+  float edgeWeight = 1.0 - smoothstep(
+    uMinY + heightRange * 0.55,
+    uMaxY,
+    position.y
+  );
 
-                // Move the bottom edge gently
-                transformed.z += wave * edgeWeight;
-                transformed.y += wave * 0.15 * edgeWeight;
-                `
-              );
+  transformed.z += wave * edgeWeight;
+  transformed.y += wave * 0.12 * edgeWeight;
+  transformed.x += sin(position.y * 2.0 + t * 0.9)
+                 * 0.012 * edgeWeight;
+  `
+);
 
 
               /* =========================
@@ -336,36 +341,39 @@
               ` + shader.fragmentShader;
 
 
-              shader.fragmentShader = shader.fragmentShader.replace(
-                "#include <color_fragment>",
-                `
-                #include <color_fragment>
+              
+shader.fragmentShader = shader.fragmentShader.replace(
+  "#include <color_fragment>",
+  `
+  #include <color_fragment>
 
-                float colorPulse =
-                  0.5 + 0.5 * sin(uTime * 1.5);
+  // เปลี่ยนเฉดสีอย่างช้า ๆ แต่ให้เห็นความต่างชัดเจน
+  float colorPulse =
+    0.5 + 0.5 * sin(uTime * 0.8);
 
-                // Soft pink
-                vec3 pinkTint =
-                  vec3(1.00, 0.25, 0.48);
+  // สีชมพู
+  vec3 pinkTint =
+    vec3(1.00, 0.18, 0.48);
 
-                // Soft peach orange
-                vec3 orangeTint =
-                  vec3(1.00, 0.48, 0.20);
+  // สีพีชอมส้ม
+  vec3 orangeTint =
+    vec3(1.00, 0.68, 0.16);
 
-                vec3 newTint = mix(
-                  pinkTint,
-                  orangeTint,
-                  colorPulse
-                );
+  vec3 newTint = mix(
+    pinkTint,
+    orangeTint,
+    colorPulse
+  );
 
-                // Keep shader color clearly visible
-                diffuseColor.rgb = mix(
-                  diffuseColor.rgb,
-                  newTint,
-                  0.80
-                );
-                `
-              );
+  // เพิ่มความชัดของสีที่ Shader นำมาใช้
+  diffuseColor.rgb = mix(
+    diffuseColor.rgb,
+    newTint,
+    0.92
+  );
+  `
+);
+
 
 
               curtainShaders.push(shader);

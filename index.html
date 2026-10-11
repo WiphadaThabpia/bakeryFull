@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 
@@ -212,50 +211,21 @@
 
 
         /* =================================================
-           INDIVIDUAL AWNING SHADERS
-           Plane.001, Plane.002, Plane.003
+           PLANE.001, PLANE.002, PLANE.003
+           VERTEX + FRAGMENT SHADER
         ================================================= */
-
-        const awningSettings = {
-
-          Plane001: {
-            strength: 0.10,
-            frequency: 9.0,
-            speed: 2.5,
-            phase: 0.0
-          },
-
-          Plane002: {
-            strength: 0.075,
-            frequency: 11.0,
-            speed: 2.0,
-            phase: 2.0
-          },
-
-          Plane003: {
-            strength: 0.09,
-            frequency: 8.0,
-            speed: 2.5,
-            phase: 4.0
-          }
-
-        };
-
 
         bakery.traverse(function(node) {
 
           const cleanName = node.name.replace(/\./g, "");
 
-          const settings = awningSettings[cleanName];
-
           if (
-            settings &&
-            node.isMesh &&
+            ["Plane001", "Plane002", "Plane003"].includes(cleanName) &&
             node.material &&
             node.geometry
           ) {
 
-            // Clone material so each awning has its own shader
+            // Clone material to keep each awning independent
             node.material = node.material.clone();
 
             const geometry = node.geometry;
@@ -265,14 +235,12 @@
             const minY = geometry.boundingBox.min.y;
             const maxY = geometry.boundingBox.max.y;
 
-            console.log("FOUND AWNING:", node.name);
+            console.log("FOUND CLOTH:", node.name);
 
             console.log(
               node.name + " vertices:",
               geometry.attributes.position.count
             );
-
-            console.log("Settings:", settings);
 
 
             node.material.onBeforeCompile = function(shader) {
@@ -293,82 +261,82 @@
                 value: maxY
               };
 
-              shader.uniforms.uStrength = {
-                value: settings.strength
-              };
-
-              shader.uniforms.uFrequency = {
-                value: settings.frequency
-              };
-
-              shader.uniforms.uSpeed = {
-                value: settings.speed
-              };
-
-              shader.uniforms.uPhase = {
-                value: settings.phase
-              };
-
 
               /* =========================
                  VERTEX SHADER
-                 Smooth individual waves
+                 Animate the awning
               ========================= */
 
               shader.vertexShader = `
                 uniform float uTime;
                 uniform float uMinY;
                 uniform float uMaxY;
-                uniform float uStrength;
-                uniform float uFrequency;
-                uniform float uSpeed;
-                uniform float uPhase;
               ` + shader.vertexShader;
 
 
-              shader.vertexShader =
-                shader.vertexShader.replace(
-                  "#include <begin_vertex>",
-                  `
-                  #include <begin_vertex>
+              shader.vertexShader = shader.vertexShader.replace(
+                "#include <begin_vertex>",
+                `
+                #include <begin_vertex>
 
-                  float t = uTime * uSpeed + uPhase;
+                float t = uTime;
 
-                  float wave1 = sin(
-                    position.x * uFrequency + t
-                  );
-
-                  float wave2 = sin(
-                    position.x * (uFrequency * 1.6) - t * 1.3
-                  );
-
-                  float wave3 = sin(
-                    position.z * (uFrequency * 0.7) + t * 0.8
-                  );
-
-                  float wave = (
-                    wave1 * 0.45 +
-                    wave2 * 0.20 +
-                    wave3 * 0.10
-                  ) * uStrength;
-
-                  // Reduce movement near the upper local-Y edge
-                  float edgeWeight = 1.0 - smoothstep(
-                    uMinY,
-                    uMinY + max((uMaxY - uMinY) * 0.20, 0.0001),
-                    position.y
-                  );
-
-                  // Apply smooth displacement
-                  transformed.z += wave * edgeWeight;
-                  transformed.y += wave * 0.25 * edgeWeight;
-                  `
+                float height01 = clamp(
+                  (position.y - uMinY) /
+                  max(uMaxY - uMinY, 0.001),
+                  0.0,
+                  1.0
                 );
+
+                float bottom = 1.0 - height01;
+                float movement = pow(bottom, 1.6);
+
+                float wave1 = sin(
+                  position.x * 4.0 +
+                  position.y * 4.0 +
+                  t * 1.8
+                );
+
+                float wave2 = sin(
+                  position.x * 8.0 +
+                  position.y * 6.0 +
+                  t * 2.5
+                );
+
+                float wave3 = sin(
+                  position.x * 15.0 +
+                  position.y * 9.0 +
+                  t * 4.0
+                );
+
+                float wave =
+                  wave1 * 0.16 +
+                  wave2 * 0.07 +
+                  wave3 * 0.02;
+
+                transformed.x += wave * movement;
+                transformed.z += wave * 0.5 * movement;
+
+                transformed.y +=
+                  sin(position.x * 6.0 + t * 2.0) *
+                  0.04 * movement;
+
+                float edge = smoothstep(0.5, 1.0, bottom);
+
+                transformed.x +=
+                  sin(position.x * 10.0 + t * 3.0) *
+                  0.05 * edge;
+
+                transformed.z +=
+                  cos(position.x * 8.0 + t * 2.5) *
+                  0.03 * edge;
+                `
+              );
 
 
               /* =========================
                  FRAGMENT SHADER
-                 Pink-orange color effect
+                 Change awning color
               ========================= */
 
               shader.fragmentShader = `
@@ -376,36 +344,34 @@
               ` + shader.fragmentShader;
 
 
-              shader.fragmentShader =
-                shader.fragmentShader.replace(
-                  "#include <color_fragment>",
-                  `
-                  #include <color_fragment>
+              shader.fragmentShader = shader.fragmentShader.replace(
+                "#include <color_fragment>",
+                `
+                #include <color_fragment>
 
-                  float colorPulse =
-                    0.5 + 0.5 * sin(uTime * 1.5);
+                float colorPulse =
+                  0.5 + 0.5 * sin(uTime * 1.5);
 
-                 vec3 pinkColor = vec3(0.75, 0.05, 0.20);
-                 vec3 orangeColor = vec3(0.85, 0.25, 0.05);
+                vec3 pinkTint =
+                  vec3(1.0, 0.25, 0.50);
 
-                 vec3 tint = mix(pinkColor, orangeColor, colorPulse);
+                vec3 orangeTint =
+                  vec3(1.0, 0.65, 0.25);
 
-                 gl_FragColor = vec4(
-                 mix(diffuseColor.rgb, tint, 0.75),
-                 diffuseColor.a
+                vec3 newTint =
+                  mix(pinkTint, orangeTint, colorPulse);
 
-                  diffuseColor.rgb =
-                    mix(diffuseColor.rgb, newTint, 0.5);
-                  `
-                );
+                diffuseColor.rgb =
+                  mix(diffuseColor.rgb, newTint, 0.5);
+                `
+              );
 
-
-              // Store each shader for animation updates
-              curtainShaders.push(shader);
 
               console.log(
                 node.name + " Vertex + Fragment Shader applied"
               );
+
+              curtainShaders.push(shader);
 
             };
 
@@ -420,12 +386,6 @@
           }
 
         });
-
-
-        console.log(
-          "Total awning shaders:",
-          curtainShaders.length
-        );
 
 
         /* =========================
@@ -895,19 +855,19 @@
 
       requestAnimationFrame(animate);
 
-      const currentTime = clock.getElapsedTime();
-
 
       /* =========================
          UPDATE OLD SHADER TIME
       ========================= */
 
-      shaderTime.value = currentTime;
+      shaderTime.value = clock.getElapsedTime();
 
 
       /* =========================
-         UPDATE ALL AWNING SHADERS
+         UPDATE CLOTH SHADER TIME
       ========================= */
+
+      const currentTime = clock.getElapsedTime();
 
       curtainShaders.forEach(function(shader) {
 
